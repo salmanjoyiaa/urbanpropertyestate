@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Building2, Shield, MessageCircle, Star } from "lucide-react";
+import { ArrowRight, Building2, Shield, MessageCircle, Star, Clock, Wrench, Zap, Droplets, Paintbrush, Thermometer, Sparkles, PhoneCall } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
@@ -156,6 +156,85 @@ export default async function HomePage() {
                     </div>
                 </section>
             )}
+
+            {/* Maintenance Management Section */}
+            <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50/50 overflow-hidden">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        {/* Left: Content */}
+                        <div className="animate-fade-in-up">
+                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 text-sm font-medium mb-6">
+                                <Clock className="h-4 w-4" />
+                                24-Hour Response Guarantee
+                            </div>
+
+                            <h2 className="font-display text-3xl sm:text-4xl font-bold mb-4 leading-tight">
+                                Complete Property
+                                <span className="block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                    Maintenance Services
+                                </span>
+                            </h2>
+
+                            <p className="text-lg text-muted-foreground mb-8 max-w-lg">
+                                From leaky faucets to full renovations — our trusted maintenance team handles all types of property repairs and upkeep within <strong className="text-foreground">24 hours</strong> of reaching out.
+                            </p>
+
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <Button asChild size="xl" className="bg-emerald-600 hover:bg-emerald-700 text-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-lg shadow-emerald-600/25">
+                                    <a href="https://wa.me/923177779990?text=Hi%2C%20I%20need%20maintenance%20help%20for%20my%20property" target="_blank" rel="noopener noreferrer">
+                                        <PhoneCall className="mr-2 h-5 w-5" />
+                                        Request Maintenance
+                                    </a>
+                                </Button>
+                                <Button asChild variant="outline" size="xl" className="hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
+                                    <Link href="/properties">
+                                        Browse Properties
+                                        <ArrowRight className="ml-2 h-5 w-5" />
+                                    </Link>
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Right: Service Cards Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 stagger-children">
+                            {[
+                                { icon: Droplets, title: "Plumbing", desc: "Leaks, pipes, fixtures", color: "bg-blue-50 text-blue-600" },
+                                { icon: Zap, title: "Electrical", desc: "Wiring, outlets, panels", color: "bg-amber-50 text-amber-600" },
+                                { icon: Thermometer, title: "HVAC", desc: "AC, heating, ventilation", color: "bg-red-50 text-red-600" },
+                                { icon: Wrench, title: "Appliance", desc: "Repairs & installation", color: "bg-purple-50 text-purple-600" },
+                                { icon: Paintbrush, title: "Painting", desc: "Interior & exterior", color: "bg-emerald-50 text-emerald-600" },
+                                { icon: Sparkles, title: "Deep Clean", desc: "Move-in/move-out ready", color: "bg-cyan-50 text-cyan-600" },
+                            ].map((service) => (
+                                <div
+                                    key={service.title}
+                                    className="group p-5 rounded-2xl bg-white border hover:shadow-lg card-glow transition-all duration-300 hover:-translate-y-1 text-center"
+                                >
+                                    <div className={`w-12 h-12 rounded-xl ${service.color} flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300`}>
+                                        <service.icon className="h-6 w-6" />
+                                    </div>
+                                    <h3 className="font-display font-semibold text-sm mb-1">{service.title}</h3>
+                                    <p className="text-xs text-muted-foreground">{service.desc}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Trust bar */}
+                    <div className="mt-12 flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-sm text-muted-foreground">
+                        {[
+                            { icon: Shield, text: "Licensed & Insured" },
+                            { icon: Clock, text: "24h Response Time" },
+                            { icon: Star, text: "4.9★ Customer Rating" },
+                            { icon: Wrench, text: "All Types Covered" },
+                        ].map((item) => (
+                            <div key={item.text} className="flex items-center gap-2">
+                                <item.icon className="h-4 w-4 text-emerald-600" />
+                                <span className="font-medium">{item.text}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
 
             {/* CTA Section */}
             <section className="py-20 gradient-primary">

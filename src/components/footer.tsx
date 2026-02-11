@@ -40,7 +40,6 @@ export default function Footer() {
                         <h4 className="font-display font-semibold mb-4">Contact</h4>
                         <ul className="space-y-2 text-sm opacity-70">
                             <li>info@urbanestate.com</li>
-                            <li>Karachi, Pakistan</li>
                         </ul>
                     </div>
                 </div>

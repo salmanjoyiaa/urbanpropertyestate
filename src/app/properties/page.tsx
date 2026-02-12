@@ -4,6 +4,7 @@ import Footer from "@/components/footer";
 import FilterBar from "@/components/filter-bar";
 import PropertyCard from "@/components/property-card";
 import SkeletonCard from "@/components/skeleton-card";
+import AISearchSection from "@/components/ai-search-section";
 import { createClient } from "@/lib/supabase/server";
 import type { Property, PropertyFilters } from "@/lib/types";
 
@@ -85,6 +86,9 @@ export default function PropertiesPage({ searchParams }: Props) {
                 </Suspense>
 
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    {/* AI-Powered Search */}
+                    <AISearchSection />
+
                     <div className="mb-6">
                         <h1 className="font-display text-3xl font-bold">Properties</h1>
                         <p className="text-muted-foreground mt-1">

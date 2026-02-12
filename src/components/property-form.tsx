@@ -24,6 +24,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { CURRENCY_OPTIONS } from "@/lib/utils";
 import type { Property, PropertyPhoto, PropertyBlock } from "@/lib/types";
+import AICopilotPanel from "@/components/ai-copilot-panel";
+import ComplianceBadge from "@/components/compliance-badge";
+import PricingInsight from "@/components/pricing-insight";
 
 interface PropertyFormProps {
     property?: Property;
@@ -470,7 +473,10 @@ export default function PropertyForm({
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="description">Description</Label>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="description">Description</Label>
+                                    <ComplianceBadge text={description} mode="quick" showDetails />
+                                </div>
                                 <Textarea
                                     id="description"
                                     value={description}
@@ -505,6 +511,39 @@ export default function PropertyForm({
 
                 {/* Sidebar */}
                 <div className="space-y-6">
+                    {/* AI Copilot */}
+                    <AICopilotPanel
+                        onApply={(aiTitle, aiDesc) => {
+                            setTitle(aiTitle);
+                            setDescription(aiDesc);
+                        }}
+                        propertyData={{
+                            type,
+                            beds: parseInt(beds) || 0,
+                            baths: parseInt(baths) || 0,
+                            rent: parseFloat(rent) || 0,
+                            currency,
+                            city,
+                            area,
+                            amenities,
+                            furnished,
+                        }}
+                    />
+
+                    {/* Pricing Insight */}
+                    {city && beds && rent && (
+                        <PricingInsight
+                            city={city}
+                            area={area}
+                            beds={parseInt(beds) || 0}
+                            type={type}
+                            currentPrice={parseFloat(rent) || 0}
+                            currency={currency}
+                            amenities={amenities}
+                            furnished={furnished}
+                        />
+                    )}
+
                     {/* Photos */}
                     <Card>
                         <CardHeader>

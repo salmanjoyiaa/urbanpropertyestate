@@ -15,6 +15,7 @@ import Footer from "@/components/footer";
 import PropertyGallery from "@/components/property-gallery";
 import WhatsAppButton from "@/components/whatsapp-button";
 import AvailabilityCalendar from "@/components/availability-calendar";
+import PropertyAIFeatures from "@/components/property-ai-features";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -226,15 +227,27 @@ export default async function PropertyDetailPage({ params }: Props) {
                                     </div>
                                 )}
 
-                                {/* WhatsApp CTA */}
+                                {/* WhatsApp CTA with AI */}
                                 {agent && (
-                                    <WhatsAppButton
-                                        whatsappNumber={agent.whatsapp_number}
-                                        agentName={agent.name}
-                                        propertyTitle={property.title}
+                                    <PropertyAIFeatures
+                                        description={property.description}
+                                        price={property.rent}
+                                        currency={property.currency}
                                         propertyId={property.id}
-                                        size="xl"
-                                        className="w-full"
+                                        propertyTitle={property.title}
+                                        agentName={agent.name}
+                                        whatsappNumber={agent.whatsapp_number}
+                                        propertyDetails={{
+                                            type: property.type,
+                                            beds: property.beds,
+                                            baths: property.baths,
+                                            area: property.area,
+                                            city: property.city,
+                                            rent: property.rent,
+                                            currency: property.currency,
+                                            amenities: property.amenities,
+                                            furnished: property.furnished,
+                                        }}
                                     />
                                 )}
                             </div>

@@ -12,6 +12,7 @@ export function formatCurrency(amount: number, currency: string = "USD") {
         EUR: "en-DE",
         GBP: "en-GB",
         AED: "en-AE",
+        SAR: "en-SA",
     };
     return new Intl.NumberFormat(localeMap[currency] || "en-US", {
         style: "currency",
@@ -27,6 +28,7 @@ export const CURRENCY_OPTIONS = [
     { value: "EUR", label: "EUR (€)", symbol: "€" },
     { value: "GBP", label: "GBP (£)", symbol: "£" },
     { value: "AED", label: "AED (د.إ)", symbol: "د.إ" },
+    { value: "SAR", label: "SAR (﷼)", symbol: "﷼" },
 ];
 
 export function buildWhatsAppUrl(

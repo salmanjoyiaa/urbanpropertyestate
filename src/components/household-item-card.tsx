@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { MapPin, Tag, Truck, MessageCircle } from "lucide-react";
+import { MapPin, Tag, Truck, MessageCircle, Phone, UserX } from "lucide-react";
 import type { HouseholdItem } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 
@@ -108,8 +108,8 @@ export default function HouseholdItemCard({ item }: HouseholdItemCardProps) {
                     )}
                 </div>
 
-                {/* WhatsApp CTA */}
-                {whatsappNumber && (
+                {/* Contact CTA — always visible */}
+                {whatsappNumber ? (
                     <a
                         href={`https://wa.me/${whatsappNumber}?text=${whatsappMessage}`}
                         target="_blank"
@@ -119,6 +119,19 @@ export default function HouseholdItemCard({ item }: HouseholdItemCardProps) {
                         <MessageCircle className="h-4 w-4" />
                         Chat on WhatsApp
                     </a>
+                ) : item.seller?.phone ? (
+                    <a
+                        href={`tel:${item.seller.phone}`}
+                        className="flex items-center justify-center gap-2 w-full mt-2 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                    >
+                        <Phone className="h-4 w-4" />
+                        Call Seller
+                    </a>
+                ) : (
+                    <div className="flex items-center justify-center gap-2 w-full mt-2 py-2 rounded-lg bg-muted text-muted-foreground text-sm font-medium cursor-not-allowed">
+                        <UserX className="h-4 w-4" />
+                        Contact Unavailable
+                    </div>
                 )}
             </div>
         </Card>

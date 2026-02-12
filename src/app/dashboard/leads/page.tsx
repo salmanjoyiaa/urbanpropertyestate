@@ -165,6 +165,24 @@ export default async function LeadsPage() {
                                                 {lead.message}
                                             </p>
 
+                                            {/* AI Reasons */}
+                                            {lead.ai_reasons && lead.ai_reasons.length > 0 && (
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    {lead.ai_reasons.slice(0, 3).map((reason: string, i: number) => (
+                                                        <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-primary/10 text-primary">
+                                                            {reason}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* Suggested Follow-up */}
+                                            {lead.suggested_follow_up && (
+                                                <p className="text-xs text-primary/80 mt-1 italic">
+                                                    💡 {lead.suggested_follow_up}
+                                                </p>
+                                            )}
+
                                             <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                                                 {lead.contact_phone && (
                                                     <span className="flex items-center gap-1">

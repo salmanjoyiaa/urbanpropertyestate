@@ -580,9 +580,10 @@ export default function PropertyForm({
                                                 }`}
                                             onClick={() => setCoverId(photo.id)}
                                         >
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img
                                                 src={photo.url}
-                                                alt=""
+                                                alt="Property photo"
                                                 className="w-full h-full object-cover"
                                             />
                                             {coverId === photo.id && (
@@ -606,9 +607,10 @@ export default function PropertyForm({
                                             key={i}
                                             className="relative aspect-square rounded-lg overflow-hidden bg-muted"
                                         >
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img
                                                 src={URL.createObjectURL(file)}
-                                                alt=""
+                                                alt="New upload preview"
                                                 className="w-full h-full object-cover"
                                             />
                                             <button

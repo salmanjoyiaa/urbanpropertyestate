@@ -1,4 +1,5 @@
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { ArrowRight, Building2, Shield, MessageCircle, Star, Clock, Wrench, Zap, Droplets, Paintbrush, Thermometer, Sparkles, PhoneCall, ShoppingBag, Sofa } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/navbar";
@@ -7,6 +8,15 @@ import { createClient } from "@/lib/supabase/server";
 import PropertyCard from "@/components/property-card";
 import HouseholdItemCard from "@/components/household-item-card";
 import type { Property, HouseholdItem } from "@/lib/types";
+
+const HeroAvatar = dynamic(() => import("@/components/ai-avatar/hero-avatar"), {
+    ssr: false,
+    loading: () => (
+        <div className="w-full flex items-center justify-center min-h-[280px]">
+            <div className="w-32 h-32 rounded-full bg-white/10 animate-pulse" />
+        </div>
+    ),
+});
 
 export default async function HomePage() {
     let featuredProperties: Property[] = [];
@@ -47,39 +57,47 @@ export default async function HomePage() {
                 </div>
 
                 <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
-                    <div className="max-w-3xl">
-                        <div className="animate-fade-in-up inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/90 text-sm mb-8">
-                            <Star className="h-4 w-4 text-yellow-400" />
-                            Trusted by 500+ tenants worldwide
+                    <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+                        {/* Left column — text + CTAs */}
+                        <div className="max-w-xl">
+                            <div className="animate-fade-in-up inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/90 text-sm mb-8">
+                                <Star className="h-4 w-4 text-yellow-400" />
+                                Trusted by 500+ tenants worldwide
+                            </div>
+
+                            <h1 className="animate-fade-in-up font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6" style={{ animationDelay: "0.1s" }}>
+                                Find Your
+                                <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                                    Perfect Rental
+                                </span>
+                            </h1>
+
+                            <p className="animate-fade-in-up text-lg sm:text-xl text-white/70 max-w-xl mb-10" style={{ animationDelay: "0.2s" }}>
+                                Discover premium apartments, houses, and flats from verified
+                                agents. Book directly via WhatsApp — no middlemen, no hassle.
+                            </p>
+
+                            <div className="animate-fade-in-up flex flex-col sm:flex-row gap-4" style={{ animationDelay: "0.3s" }}>
+                                <Button asChild size="xl" className="bg-white text-gray-900 hover:bg-gray-100 font-semibold shadow-lg shadow-white/20 hover:shadow-xl hover:shadow-white/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
+                                    <Link href="/properties">
+                                        Browse Properties
+                                        <ArrowRight className="ml-2 h-5 w-5" />
+                                    </Link>
+                                </Button>
+                                <Button
+                                    asChild
+                                    size="xl"
+                                    variant="outline"
+                                    className="border-2 border-white/40 text-white bg-white/10 hover:bg-white/20 hover:border-white/60 font-semibold backdrop-blur-sm hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                                >
+                                    <Link href="/login">Agent Login</Link>
+                                </Button>
+                            </div>
                         </div>
 
-                        <h1 className="animate-fade-in-up font-display text-4xl sm:text-5xl lg:text-7xl font-bold text-white leading-tight mb-6" style={{ animationDelay: "0.1s" }}>
-                            Find Your
-                            <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                                Perfect Rental
-                            </span>
-                        </h1>
-
-                        <p className="animate-fade-in-up text-lg sm:text-xl text-white/70 max-w-xl mb-10" style={{ animationDelay: "0.2s" }}>
-                            Discover premium apartments, houses, and flats from verified
-                            agents. Book directly via WhatsApp — no middlemen, no hassle.
-                        </p>
-
-                        <div className="animate-fade-in-up flex flex-col sm:flex-row gap-4" style={{ animationDelay: "0.3s" }}>
-                            <Button asChild size="xl" className="bg-white text-gray-900 hover:bg-gray-100 font-semibold shadow-lg shadow-white/20 hover:shadow-xl hover:shadow-white/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
-                                <Link href="/properties">
-                                    Browse Properties
-                                    <ArrowRight className="ml-2 h-5 w-5" />
-                                </Link>
-                            </Button>
-                            <Button
-                                asChild
-                                size="xl"
-                                variant="outline"
-                                className="border-2 border-white/40 text-white bg-white/10 hover:bg-white/20 hover:border-white/60 font-semibold backdrop-blur-sm hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-                            >
-                                <Link href="/login">Agent Login</Link>
-                            </Button>
+                        {/* Right column — AI Avatar */}
+                        <div className="animate-fade-in-up flex justify-center lg:justify-end" style={{ animationDelay: "0.4s" }}>
+                            <HeroAvatar />
                         </div>
                     </div>
                 </div>

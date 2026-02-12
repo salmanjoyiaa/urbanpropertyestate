@@ -13,8 +13,9 @@ const Avatar = React.forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanEl
 Avatar.displayName = "Avatar";
 
 const AvatarImage = React.forwardRef<HTMLImageElement, React.ImgHTMLAttributes<HTMLImageElement>>(
-    ({ className, ...props }, ref) => (
-        <img ref={ref} className={cn("aspect-square h-full w-full", className)} {...props} />
+    ({ className, alt = "", ...props }, ref) => (
+        // eslint-disable-next-line jsx-a11y/alt-text
+        <img ref={ref} className={cn("aspect-square h-full w-full", className)} alt={alt} {...props} />
     )
 );
 AvatarImage.displayName = "AvatarImage";

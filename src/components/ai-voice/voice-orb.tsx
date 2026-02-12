@@ -12,18 +12,17 @@ interface VoiceOrbProps {
 }
 
 const STATE_COLORS = {
-    idle: { primary: [99, 102, 241], secondary: [139, 92, 246], glow: "rgba(99,102,241,0.3)" },
-    listening: { primary: [239, 68, 68], secondary: [251, 146, 60], glow: "rgba(239,68,68,0.5)" },
-    thinking: { primary: [245, 158, 11], secondary: [168, 85, 247], glow: "rgba(245,158,11,0.4)" },
-    speaking: { primary: [59, 130, 246], secondary: [168, 85, 247], glow: "rgba(139,92,246,0.5)" },
+    idle: { c1: [99, 102, 241], c2: [139, 92, 246], c3: [79, 70, 229] },
+    listening: { c1: [239, 68, 68], c2: [251, 146, 60], c3: [220, 38, 38] },
+    thinking: { c1: [245, 158, 11], c2: [168, 85, 247], c3: [217, 119, 6] },
+    speaking: { c1: [59, 130, 246], c2: [168, 85, 247], c3: [99, 102, 241] },
 };
 
-export default function VoiceOrb({ state, analyserNode, micAnalyser, size = 200 }: VoiceOrbProps) {
+export default function VoiceOrb({ state, analyserNode, micAnalyser, size = 300 }: VoiceOrbProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animRef = useRef<number>(0);
     const phaseRef = useRef(0);
-    const thinkingAngleRef = useRef(0);
-    const smoothBarsRef = useRef<Float32Array>(new Float32Array(64).fill(0));
+    const smoothRef = useRef<Float32Array>(new Float32Array(128).fill(0));
 
     const draw = useCallback(() => {
         const canvas = canvasRef.current;
@@ -33,191 +32,137 @@ export default function VoiceOrb({ state, analyserNode, micAnalyser, size = 200 
 
         const dpr = window.devicePixelRatio || 1;
         const w = size * dpr;
-        const h = size * dpr;
+        const h = (size * 0.55) * dpr;
         canvas.width = w;
         canvas.height = h;
-        const cx = w / 2;
-        const cy = h / 2;
-
         ctx.clearRect(0, 0, w, h);
 
         const colors = STATE_COLORS[state];
-        const [r1, g1, b1] = colors.primary;
-        const [r2, g2, b2] = colors.secondary;
+        const [r1, g1, b1] = colors.c1;
+        const [r2, g2, b2] = colors.c2;
+        const [r3, g3, b3] = colors.c3;
 
         // Get frequency data
-        const numBars = 64;
-        const freqData = new Uint8Array(numBars);
-        let hasAudioData = false;
-
+        const fftSize = 128;
+        const freqData = new Uint8Array(fftSize);
         if (state === "speaking" && analyserNode) {
             analyserNode.getByteFrequencyData(freqData);
-            hasAudioData = freqData.some((v) => v > 10);
         } else if (state === "listening" && micAnalyser) {
             micAnalyser.getByteFrequencyData(freqData);
-            hasAudioData = freqData.some((v) => v > 10);
         }
 
-        // Smooth bars
-        const smoothBars = smoothBarsRef.current;
-        for (let i = 0; i < numBars; i++) {
-            const target = freqData[i] / 255;
-            const smoothing = state === "idle" ? 0.92 : 0.75;
-            smoothBars[i] = smoothBars[i] * smoothing + target * (1 - smoothing);
+        // Smooth
+        const smooth = smoothRef.current;
+        const sm = state === "idle" || state === "thinking" ? 0.93 : 0.7;
+        for (let i = 0; i < fftSize; i++) {
+            smooth[i] = smooth[i] * sm + (freqData[i] / 255) * (1 - sm);
         }
 
-        phaseRef.current += 0.015;
-        if (state === "thinking") thinkingAngleRef.current += 0.03;
+        phaseRef.current += state === "thinking" ? 0.04 : 0.02;
+        const phase = phaseRef.current;
+        const cy = h / 2;
+        const waveW = w * 0.9;
+        const sx = (w - waveW) / 2;
+        const pts = 90;
 
-        const orbRadius = w * 0.2;
-        const barMaxLen = w * 0.15;
+        // Draw wave layer
+        const drawWave = (
+            amp: number, freq: number, pOff: number,
+            wc1: number[], wc2: number[], alpha: number,
+            lw: number, fill: boolean, useAudio: boolean, aMul: number
+        ) => {
+            ctx.beginPath();
+            const g = ctx.createLinearGradient(sx, 0, sx + waveW, 0);
+            g.addColorStop(0, `rgba(${wc1[0]},${wc1[1]},${wc1[2]},${alpha * 0.2})`);
+            g.addColorStop(0.25, `rgba(${wc1[0]},${wc1[1]},${wc1[2]},${alpha})`);
+            g.addColorStop(0.5, `rgba(${wc2[0]},${wc2[1]},${wc2[2]},${alpha})`);
+            g.addColorStop(0.75, `rgba(${wc1[0]},${wc1[1]},${wc1[2]},${alpha})`);
+            g.addColorStop(1, `rgba(${wc2[0]},${wc2[1]},${wc2[2]},${alpha * 0.2})`);
 
-        // Outer glow
-        const glowRadius = orbRadius * (state === "idle" ? 1.6 : 2.0);
-        const glowGrad = ctx.createRadialGradient(cx, cy, orbRadius * 0.5, cx, cy, glowRadius);
-        glowGrad.addColorStop(0, `rgba(${r1},${g1},${b1},${state === "idle" ? 0.1 : 0.2})`);
-        glowGrad.addColorStop(0.5, `rgba(${r2},${g2},${b2},${state === "idle" ? 0.05 : 0.1})`);
-        glowGrad.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = glowGrad;
+            const pArr: [number, number][] = [];
+            for (let i = 0; i <= pts; i++) {
+                const t = i / pts;
+                const x = sx + t * waveW;
+                let aA = 0;
+                if (useAudio) {
+                    const bin = Math.floor(t * fftSize * 0.6);
+                    aA = smooth[Math.min(bin, fftSize - 1)] * aMul;
+                }
+                const edge = Math.sin(t * Math.PI);
+                const y = cy + (amp * edge + aA * edge) *
+                    (Math.sin(t * Math.PI * freq + phase * 2 + pOff) * 0.55 +
+                     Math.sin(t * Math.PI * freq * 1.8 + phase * 3.2 + pOff * 0.6) * 0.28 +
+                     Math.sin(t * Math.PI * freq * 3.5 + phase * 1.4 + pOff * 1.4) * 0.17);
+                pArr.push([x, y]);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+
+            if (fill) {
+                for (let i = pts; i >= 0; i--) {
+                    const [px, py] = pArr[i];
+                    ctx.lineTo(px, cy + (cy - py));
+                }
+                ctx.closePath();
+                const fg = ctx.createLinearGradient(0, cy - amp * 2, 0, cy + amp * 2);
+                fg.addColorStop(0, `rgba(${wc1[0]},${wc1[1]},${wc1[2]},${alpha * 0.1})`);
+                fg.addColorStop(0.5, `rgba(${wc2[0]},${wc2[1]},${wc2[2]},${alpha * 0.05})`);
+                fg.addColorStop(1, `rgba(${wc1[0]},${wc1[1]},${wc1[2]},${alpha * 0.1})`);
+                ctx.fillStyle = fg;
+                ctx.fill();
+            }
+            ctx.strokeStyle = g;
+            ctx.lineWidth = lw * dpr;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.stroke();
+        };
+
+        // Glow
+        const gg = ctx.createRadialGradient(w / 2, cy, 0, w / 2, cy, waveW * 0.45);
+        const ga = state === "idle" ? 0.04 : state === "thinking" ? 0.07 : 0.12;
+        gg.addColorStop(0, `rgba(${r1},${g1},${b1},${ga})`);
+        gg.addColorStop(0.6, `rgba(${r2},${g2},${b2},${ga * 0.4})`);
+        gg.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = gg;
         ctx.fillRect(0, 0, w, h);
 
-        // Draw radial bars
-        for (let i = 0; i < numBars; i++) {
-            const angle = (i / numBars) * Math.PI * 2 - Math.PI / 2;
-            let barValue = smoothBars[i];
-
-            if (state === "idle") {
-                barValue = 0.05 + Math.sin(phaseRef.current * 2 + i * 0.2) * 0.04;
-            } else if (state === "thinking") {
-                const tAngle = thinkingAngleRef.current;
-                const dist = Math.abs(((i / numBars) * Math.PI * 2 - (tAngle % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI);
-                barValue = Math.max(0.03, 0.6 * Math.exp(-dist * 1.5));
-            } else if (!hasAudioData) {
-                barValue = 0.08 + Math.sin(phaseRef.current * 3 + i * 0.15) * 0.06;
-            }
-
-            const barLen = Math.max(2 * dpr, barValue * barMaxLen);
-            const innerR = orbRadius + 4 * dpr;
-            const outerR = innerR + barLen;
-
-            const x1 = cx + Math.cos(angle) * innerR;
-            const y1 = cy + Math.sin(angle) * innerR;
-            const x2 = cx + Math.cos(angle) * outerR;
-            const y2 = cy + Math.sin(angle) * outerR;
-
-            const alpha = 0.3 + barValue * 0.7;
-            const mix = i / numBars;
-            const cr = Math.round(r1 + (r2 - r1) * mix);
-            const cg = Math.round(g1 + (g2 - g1) * mix);
-            const cb = Math.round(b1 + (b2 - b1) * mix);
-
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha})`;
-            ctx.lineWidth = Math.max(2, 3 * dpr);
-            ctx.lineCap = "round";
-            ctx.stroke();
-        }
-
-        // Central orb gradient
-        const orbGrad = ctx.createRadialGradient(cx - orbRadius * 0.3, cy - orbRadius * 0.3, 0, cx, cy, orbRadius);
-        orbGrad.addColorStop(0, `rgba(${r1},${g1},${b1},0.9)`);
-        orbGrad.addColorStop(0.6, `rgba(${Math.round((r1 + r2) / 2)},${Math.round((g1 + g2) / 2)},${Math.round((b1 + b2) / 2)},0.85)`);
-        orbGrad.addColorStop(1, `rgba(${r2},${g2},${b2},0.8)`);
-
-        const breathe = state === "idle" ? 1 + Math.sin(phaseRef.current) * 0.03 : state === "speaking" ? 1 + (smoothBars.reduce((s, v) => s + v, 0) / numBars) * 0.08 : 1;
-
+        // Baseline
         ctx.beginPath();
-        ctx.arc(cx, cy, orbRadius * breathe, 0, Math.PI * 2);
-        ctx.fillStyle = orbGrad;
-        ctx.fill();
+        ctx.moveTo(sx, cy);
+        ctx.lineTo(sx + waveW, cy);
+        ctx.strokeStyle = "rgba(255,255,255,0.04)";
+        ctx.lineWidth = 1 * dpr;
+        ctx.stroke();
 
-        // Inner shine
-        const shineGrad = ctx.createRadialGradient(cx - orbRadius * 0.25, cy - orbRadius * 0.25, 0, cx, cy, orbRadius * 0.8);
-        shineGrad.addColorStop(0, "rgba(255,255,255,0.25)");
-        shineGrad.addColorStop(1, "rgba(255,255,255,0)");
-        ctx.beginPath();
-        ctx.arc(cx, cy, orbRadius * breathe * 0.85, 0, Math.PI * 2);
-        ctx.fillStyle = shineGrad;
-        ctx.fill();
+        const active = state === "listening" || state === "speaking";
+        const bA = h * (active ? 0.13 : 0.035);
+        const aM = h * 0.3;
 
-        // Thinking ring
+        drawWave(bA * 1.6, 2.5, 0, [r1, g1, b1], [r2, g2, b2], 0.25, 1, true, active, aM * 1.2);
+        drawWave(bA * 1.3, 3, Math.PI * 0.4, [r2, g2, b2], [r3, g3, b3], 0.45, 1.5, true, active, aM);
+        drawWave(bA, 3.5, Math.PI * 0.8, [r1, g1, b1], [r2, g2, b2], 0.85, 2.5, false, active, aM * 0.8);
+        drawWave(bA * 0.8, 4.5, Math.PI * 1.3, [r3, g3, b3], [r1, g1, b1], 0.55, 1.5, false, active, aM * 0.6);
+        drawWave(bA * 0.5, 5.5, Math.PI * 1.8, [r2, g2, b2], [r3, g3, b3], 0.3, 1, false, active, aM * 0.4);
+
+        // Thinking particles
         if (state === "thinking") {
-            const ringAngle = thinkingAngleRef.current * 2;
-            ctx.beginPath();
-            ctx.arc(cx, cy, orbRadius + 8 * dpr, ringAngle, ringAngle + Math.PI * 0.6);
-            ctx.strokeStyle = `rgba(${r1},${g1},${b1},0.6)`;
-            ctx.lineWidth = 3 * dpr;
-            ctx.lineCap = "round";
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(cx, cy, orbRadius + 8 * dpr, ringAngle + Math.PI, ringAngle + Math.PI * 1.6);
-            ctx.strokeStyle = `rgba(${r2},${g2},${b2},0.6)`;
-            ctx.lineWidth = 3 * dpr;
-            ctx.lineCap = "round";
-            ctx.stroke();
-        }
-
-        // Center icon (mic wave for idle, sound wave lines for speaking)
-        ctx.save();
-        ctx.translate(cx, cy);
-        const iconAlpha = state === "idle" ? 0.6 : 0.9;
-        ctx.strokeStyle = `rgba(255,255,255,${iconAlpha})`;
-        ctx.lineWidth = 2.5 * dpr;
-        ctx.lineCap = "round";
-
-        if (state === "idle" || state === "listening") {
-            // Mic icon
-            const s = orbRadius * 0.3;
-            ctx.beginPath();
-            ctx.arc(0, -s * 0.2, s * 0.35, Math.PI, 0);
-            ctx.lineTo(s * 0.35, s * 0.3);
-            ctx.arc(0, s * 0.3, s * 0.35, 0, Math.PI);
-            ctx.closePath();
-            ctx.fillStyle = `rgba(255,255,255,${iconAlpha})`;
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(0, s * 0.3, s * 0.55, 0, Math.PI);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(0, s * 0.3 + s * 0.55);
-            ctx.lineTo(0, s * 0.3 + s * 0.8);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(-s * 0.3, s * 0.3 + s * 0.8);
-            ctx.lineTo(s * 0.3, s * 0.3 + s * 0.8);
-            ctx.stroke();
-        } else if (state === "speaking") {
-            // Sound wave bars
-            const bw = 3 * dpr;
-            const gap = 6 * dpr;
-            const heights = [0.3, 0.6, 1, 0.6, 0.3];
-            const maxH = orbRadius * 0.45;
-            for (let i = 0; i < 5; i++) {
-                const x = (i - 2) * gap;
-                const animH = heights[i] * (0.5 + smoothBars[i * 8] * 0.5);
-                const h = maxH * animH;
+            for (let p = 0; p < 10; p++) {
+                const t = ((phase * 0.5 + p * 0.1) % 1);
+                const x = sx + t * waveW;
+                const edge = Math.sin(t * Math.PI);
+                const y = cy + bA * 1.5 * edge * Math.sin(t * Math.PI * 3 + phase * 2);
+                const pa = edge * 0.7;
+                const ps = (2 + Math.sin(phase + p) * 1.5) * dpr;
                 ctx.beginPath();
-                ctx.moveTo(x, -h / 2);
-                ctx.lineTo(x, h / 2);
-                ctx.lineWidth = bw;
-                ctx.stroke();
-            }
-        } else if (state === "thinking") {
-            // Dots rotating
-            for (let i = 0; i < 3; i++) {
-                const a = thinkingAngleRef.current * 3 + (i * Math.PI * 2) / 3;
-                const dx = Math.cos(a) * orbRadius * 0.25;
-                const dy = Math.sin(a) * orbRadius * 0.25;
+                ctx.arc(x, y, ps, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${r2},${g2},${b2},${pa})`;
+                ctx.fill();
                 ctx.beginPath();
-                ctx.arc(dx, dy, 4 * dpr, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255,255,255,${0.5 + (i / 3) * 0.5})`;
+                ctx.arc(x, y, ps * 3, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${r1},${g1},${b1},${pa * 0.12})`;
                 ctx.fill();
             }
         }
-        ctx.restore();
 
         animRef.current = requestAnimationFrame(draw);
     }, [state, analyserNode, micAnalyser, size]);
@@ -227,17 +172,11 @@ export default function VoiceOrb({ state, analyserNode, micAnalyser, size = 200 
         return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
     }, [draw]);
 
-    const glowColor = STATE_COLORS[state].glow;
-
     return (
-        <div className="relative" style={{ width: size, height: size }}>
-            <div
-                className="absolute inset-0 rounded-full transition-all duration-700"
-                style={{ boxShadow: `0 0 ${state === "idle" ? 30 : 60}px ${glowColor}, 0 0 ${state === "idle" ? 60 : 120}px ${glowColor}` }}
-            />
+        <div className="relative w-full" style={{ maxWidth: size }}>
             <canvas
                 ref={canvasRef}
-                style={{ width: size, height: size }}
+                style={{ width: size, height: size * 0.55 }}
                 className="relative z-10"
             />
         </div>

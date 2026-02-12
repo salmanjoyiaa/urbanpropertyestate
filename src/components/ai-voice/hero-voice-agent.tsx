@@ -59,18 +59,18 @@ export default function HeroVoiceAgent() {
 
     return (
         <div className="relative flex flex-col items-center w-full max-w-sm mx-auto">
-            {/* Voice Orb */}
+            {/* Sound Wave Visualizer */}
             <div className="relative">
                 <VoiceOrb
                     state={state}
                     analyserNode={analyserNode}
                     micAnalyser={micAnalyser}
-                    size={200}
+                    size={300}
                 />
 
-                {/* Cart badge on orb */}
+                {/* Cart badge */}
                 {itemCount > 0 && (
-                    <div className="absolute -top-1 -right-1 z-20 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-emerald-500/30 animate-scale-in">
+                    <div className="absolute top-0 right-4 z-20 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-emerald-500/30 animate-scale-in">
                         {itemCount}
                     </div>
                 )}

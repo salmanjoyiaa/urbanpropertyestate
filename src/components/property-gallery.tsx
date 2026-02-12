@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { PropertyPhoto } from "@/lib/types";
 
@@ -33,11 +34,14 @@ export default function PropertyGallery({ photos, title }: PropertyGalleryProps)
     return (
         <div className="relative group">
             {/* Main Image */}
-            <div className="aspect-[16/9] md:aspect-[2/1] overflow-hidden rounded-xl bg-muted">
-                <img
+            <div className="aspect-[16/9] md:aspect-[2/1] overflow-hidden rounded-xl bg-muted relative">
+                <Image
                     src={sortedPhotos[currentIndex].url}
                     alt={`${title} - Photo ${currentIndex + 1}`}
-                    className="w-full h-full object-cover transition-opacity duration-300"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 80vw"
+                    className="object-cover transition-opacity duration-300"
+                    priority={currentIndex === 0}
                 />
             </div>
 
@@ -46,12 +50,14 @@ export default function PropertyGallery({ photos, title }: PropertyGalleryProps)
                 <>
                     <button
                         onClick={() => goTo(currentIndex - 1)}
+                        aria-label="Previous photo"
                         className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
                     >
                         <ChevronLeft className="h-5 w-5" />
                     </button>
                     <button
                         onClick={() => goTo(currentIndex + 1)}
+                        aria-label="Next photo"
                         className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
                     >
                         <ChevronRight className="h-5 w-5" />
@@ -63,6 +69,7 @@ export default function PropertyGallery({ photos, title }: PropertyGalleryProps)
                             <button
                                 key={i}
                                 onClick={() => goTo(i)}
+                                aria-label={`Go to photo ${i + 1}`}
                                 className={`w-2 h-2 rounded-full transition-all ${i === currentIndex
                                         ? "bg-white w-6"
                                         : "bg-white/50 hover:bg-white/80"
@@ -85,15 +92,18 @@ export default function PropertyGallery({ photos, title }: PropertyGalleryProps)
                         <button
                             key={photo.id}
                             onClick={() => goTo(i)}
-                            className={`shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-all ${i === currentIndex
+                            aria-label={`View photo ${i + 1}`}
+                            className={`shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-all relative ${i === currentIndex
                                     ? "border-primary ring-2 ring-primary/20"
                                     : "border-transparent opacity-60 hover:opacity-100"
                                 }`}
                         >
-                            <img
+                            <Image
                                 src={photo.url}
                                 alt={`Thumbnail ${i + 1}`}
-                                className="w-full h-full object-cover"
+                                fill
+                                sizes="80px"
+                                className="object-cover"
                             />
                         </button>
                     ))}

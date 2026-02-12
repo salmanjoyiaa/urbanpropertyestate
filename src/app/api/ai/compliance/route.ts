@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { applyRateLimit } from "@/lib/api-helpers";
 import { generateJSON } from "@/lib/ai/groq";
 import { COMPLIANCE_SYSTEM_PROMPT, getCompliancePrompt } from "@/lib/ai/prompts";
 import { quickComplianceCheck, fullComplianceCheck } from "@/lib/ai/compliance";
@@ -6,6 +7,10 @@ import type { ComplianceCheck } from "@/lib/ai/types";
 
 export async function POST(request: NextRequest) {
     try {
+        // Rate limiting
+        const rateLimitResponse = applyRateLimit(request, "general");
+        if (rateLimitResponse) return rateLimitResponse;
+
         const { text, mode } = await request.json();
 
         if (!text?.trim()) {

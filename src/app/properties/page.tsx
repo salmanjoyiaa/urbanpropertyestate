@@ -15,6 +15,8 @@ interface Props {
 async function PropertyGrid({ searchParams }: Props) {
     let properties: Property[] = [];
     let totalCount = 0;
+    const page = parseInt(searchParams.page as string) || 1;
+    const pageSize = 12;
 
     try {
         const supabase = createClient();
@@ -71,7 +73,8 @@ async function PropertyGrid({ searchParams }: Props) {
                 query = query.order("created_at", { ascending: false });
         }
 
-        const { data, count } = await query.limit(48);
+        const { data, count } = await query
+            .range((page - 1) * pageSize, page * pageSize - 1);
         properties = (data as Property[]) || [];
         totalCount = count || 0;
     } catch {
@@ -112,6 +115,10 @@ async function PropertyGrid({ searchParams }: Props) {
                     <PropertyCard key={property.id} property={property} />
                 ))}
             </div>
+            {/* Pagination */}
+            {totalCount > pageSize && (
+                <Pagination currentPage={page} totalPages={Math.ceil(totalCount / pageSize)} searchParams={searchParams} />
+            )}
         </>
     );
 }
@@ -130,6 +137,75 @@ function ResultsHeader({ count, searchParams }: { count: number; searchParams: P
                 </p>
             </div>
         </div>
+    );
+}
+
+function Pagination({
+    currentPage,
+    totalPages,
+    searchParams,
+}: {
+    currentPage: number;
+    totalPages: number;
+    searchParams: Props["searchParams"];
+}) {
+    const buildHref = (page: number) => {
+        const params = new URLSearchParams();
+        for (const [key, value] of Object.entries(searchParams)) {
+            if (value && key !== "page") params.set(key, String(value));
+        }
+        params.set("page", String(page));
+        return `/properties?${params.toString()}`;
+    };
+
+    return (
+        <nav className="flex items-center justify-center gap-2 mt-10" aria-label="Pagination">
+            {currentPage > 1 && (
+                <a
+                    href={buildHref(currentPage - 1)}
+                    className="px-4 py-2 rounded-lg border text-sm hover:bg-muted transition-colors"
+                >
+                    Previous
+                </a>
+            )}
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(
+                    (p) =>
+                        p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2
+                )
+                .reduce<(number | string)[]>((acc, p, i, arr) => {
+                    if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("...");
+                    acc.push(p);
+                    return acc;
+                }, [])
+                .map((item, i) =>
+                    typeof item === "string" ? (
+                        <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground">
+                            ...
+                        </span>
+                    ) : (
+                        <a
+                            key={item}
+                            href={buildHref(item)}
+                            className={`w-10 h-10 flex items-center justify-center rounded-lg text-sm transition-colors ${
+                                item === currentPage
+                                    ? "bg-primary text-primary-foreground font-medium"
+                                    : "border hover:bg-muted"
+                            }`}
+                        >
+                            {item}
+                        </a>
+                    )
+                )}
+            {currentPage < totalPages && (
+                <a
+                    href={buildHref(currentPage + 1)}
+                    className="px-4 py-2 rounded-lg border text-sm hover:bg-muted transition-colors"
+                >
+                    Next
+                </a>
+            )}
+        </nav>
     );
 }
 

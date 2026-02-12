@@ -32,7 +32,7 @@ export default async function DashboardPage() {
             .eq("agent_id", user.id)
             .order("created_at", { ascending: false });
 
-        properties = (data as any[]) || [];
+        properties = (data as Property[]) || [];
     }
 
     const publishedCount = properties.filter((p) => p.status === "published").length;

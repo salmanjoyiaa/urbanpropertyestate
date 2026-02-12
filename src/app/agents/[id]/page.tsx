@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import Image from "next/image";
+import type { Metadata } from "next";
 import { MapPin, Phone, User } from "lucide-react";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
@@ -9,6 +11,30 @@ import type { Profile, Property } from "@/lib/types";
 
 interface Props {
     params: { id: string };
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+    try {
+        const supabase = createClient();
+        const { data } = await supabase
+            .from("profiles")
+            .select("name, bio, photo_url")
+            .eq("id", params.id)
+            .eq("is_public", true)
+            .single();
+        if (!data) return { title: "Agent Not Found" };
+        return {
+            title: `${data.name} — Agent Profile`,
+            description: data.bio || `View properties listed by ${data.name} on UrbanEstate.`,
+            openGraph: {
+                title: `${data.name} — Agent Profile`,
+                description: data.bio || `View properties listed by ${data.name}`,
+                images: data.photo_url ? [{ url: data.photo_url }] : [],
+            },
+        };
+    } catch {
+        return { title: "Agent" };
+    }
 }
 
 export default async function AgentProfilePage({ params }: Props) {
@@ -54,12 +80,14 @@ export default async function AgentProfilePage({ params }: Props) {
                 <section className="gradient-primary py-16">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-                            <div className="w-28 h-28 rounded-full bg-white/10 flex items-center justify-center shrink-0 border-4 border-white/20">
+                            <div className="w-28 h-28 rounded-full bg-white/10 flex items-center justify-center shrink-0 border-4 border-white/20 overflow-hidden relative">
                                 {agent.photo_url ? (
-                                    <img
+                                    <Image
                                         src={agent.photo_url}
                                         alt={agent.name}
-                                        className="w-full h-full rounded-full object-cover"
+                                        fill
+                                        sizes="112px"
+                                        className="object-cover"
                                     />
                                 ) : (
                                     <User className="h-12 w-12 text-white/50" />

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import LeadStatusSelect from "@/components/lead-status-select";
 import {
     Users, Flame, ThermometerSun, Snowflake, Phone, Mail,
     MessageSquare, Calendar, ArrowLeft, ExternalLink, Eye
@@ -149,6 +150,10 @@ export default async function LeadsPage() {
                                                 <Badge className={`text-xs ${status.color}`}>
                                                     {status.label}
                                                 </Badge>
+                                                <LeadStatusSelect
+                                                    leadId={lead.id}
+                                                    currentStatus={lead.status}
+                                                />
                                                 {lead.score && (
                                                     <span className="text-xs text-muted-foreground">
                                                         Score: {lead.score}/100

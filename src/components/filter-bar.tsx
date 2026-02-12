@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, SlidersHorizontal, X, ChevronDown } from "lucide-react";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 
 // All cities available across our multi-market portfolio
 const CITIES = [
@@ -128,6 +128,19 @@ export default function FilterBar({ totalResults }: FilterBarProps) {
     const hasFilters = search || activeFilterCount > 0;
     const selectClass = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2";
 
+    // Track a "badge removed" counter to auto-apply when a badge is dismissed
+    const [badgeRemoved, setBadgeRemoved] = useState(0);
+    useEffect(() => {
+        if (badgeRemoved > 0) applyFilters();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [badgeRemoved]);
+
+    const removeBadge = (setter: (v: string) => void, value?: string) => {
+        if (value !== undefined) setter(value);
+        else setter("");
+        setBadgeRemoved((n) => n + 1);
+    };
+
     return (
         <div className="sticky top-16 z-40 bg-background/95 backdrop-blur-md border-b">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -201,31 +214,31 @@ export default function FilterBar({ totalResults }: FilterBarProps) {
                                 {city && (
                                     <Badge variant="secondary" className="text-xs gap-1">
                                         {city}
-                                        <X className="h-3 w-3 cursor-pointer" onClick={() => { setCity(""); }} />
+                                        <X className="h-3 w-3 cursor-pointer" onClick={() => removeBadge(setCity)} />
                                     </Badge>
                                 )}
                                 {type && (
                                     <Badge variant="secondary" className="text-xs gap-1">
                                         {type}
-                                        <X className="h-3 w-3 cursor-pointer" onClick={() => { setType(""); }} />
+                                        <X className="h-3 w-3 cursor-pointer" onClick={() => removeBadge(setType)} />
                                     </Badge>
                                 )}
                                 {(minRent || maxRent) && (
                                     <Badge variant="secondary" className="text-xs gap-1">
                                         {minRent || "0"} – {maxRent || "∞"}
-                                        <X className="h-3 w-3 cursor-pointer" onClick={() => { setMinRent(""); setMaxRent(""); }} />
+                                        <X className="h-3 w-3 cursor-pointer" onClick={() => { setMinRent(""); removeBadge(setMaxRent); }} />
                                     </Badge>
                                 )}
                                 {beds && (
                                     <Badge variant="secondary" className="text-xs gap-1">
                                         {beds}+ beds
-                                        <X className="h-3 w-3 cursor-pointer" onClick={() => { setBeds(""); }} />
+                                        <X className="h-3 w-3 cursor-pointer" onClick={() => removeBadge(setBeds)} />
                                     </Badge>
                                 )}
                                 {selectedAmenities.length > 0 && (
                                     <Badge variant="secondary" className="text-xs gap-1">
                                         {selectedAmenities.length} amenities
-                                        <X className="h-3 w-3 cursor-pointer" onClick={() => { setSelectedAmenities([]); }} />
+                                        <X className="h-3 w-3 cursor-pointer" onClick={() => { setSelectedAmenities([]); setBadgeRemoved((n) => n + 1); }} />
                                     </Badge>
                                 )}
                                 <Button onClick={clearFilters} variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground hover:text-foreground">
@@ -347,6 +360,8 @@ export default function FilterBar({ totalResults }: FilterBarProps) {
                                     <button
                                         key={amenity}
                                         onClick={() => toggleAmenity(amenity)}
+                                        aria-pressed={selectedAmenities.includes(amenity)}
+                                        aria-label={`Filter by ${amenity}`}
                                         className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${selectedAmenities.includes(amenity)
                                                 ? "bg-primary text-primary-foreground border-primary"
                                                 : "bg-background text-muted-foreground hover:bg-muted border-input"

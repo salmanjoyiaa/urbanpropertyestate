@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { applyRateLimit } from "@/lib/api-helpers";
 import { generateJSON, generateText } from "@/lib/ai/groq";
 import {
     SEARCH_SYSTEM_PROMPT,
@@ -11,6 +12,10 @@ import type { Property } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
     try {
+        // Rate limiting
+        const rateLimitResponse = applyRateLimit(request, "search");
+        if (rateLimitResponse) return rateLimitResponse;
+
         const { query } = await request.json();
 
         if (!query?.trim()) {

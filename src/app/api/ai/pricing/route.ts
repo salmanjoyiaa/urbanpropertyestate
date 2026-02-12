@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { applyRateLimit } from "@/lib/api-helpers";
 import { getPricingRecommendation } from "@/lib/ai/pricing-engine";
 
 export async function POST(request: NextRequest) {
     try {
+        // Rate limiting
+        const rateLimitResponse = applyRateLimit(request, "general");
+        if (rateLimitResponse) return rateLimitResponse;
+
         const { city, area, beds, type, currentPrice, currency, amenities, furnished } = await request.json();
 
         if (!city || !beds || !currentPrice) {

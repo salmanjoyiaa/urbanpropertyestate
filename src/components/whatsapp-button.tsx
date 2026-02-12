@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { buildWhatsAppUrl } from "@/lib/utils";
 
@@ -32,6 +32,21 @@ export default function WhatsAppButton({
         propertyTitle,
         propertyUrl
     );
+
+    // If no WhatsApp number, show a fallback
+    if (!whatsappUrl) {
+        return (
+            <Button
+                variant="outline"
+                size={size}
+                className={className}
+                disabled
+            >
+                <Mail className="mr-2 h-5 w-5" />
+                Contact Agent
+            </Button>
+        );
+    }
 
     return (
         <Button

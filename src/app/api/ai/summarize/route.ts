@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { applyRateLimit } from "@/lib/api-helpers";
 import { generateJSON } from "@/lib/ai/groq";
 import { SUMMARIZER_SYSTEM_PROMPT, getSummarizerPrompt } from "@/lib/ai/prompts";
 import type { ListingSummary } from "@/lib/ai/types";
 
 export async function POST(request: NextRequest) {
     try {
+        // Rate limiting
+        const rateLimitResponse = applyRateLimit(request, "general");
+        if (rateLimitResponse) return rateLimitResponse;
+
         const { description, price, currency } = await request.json();
 
         if (!description?.trim()) {

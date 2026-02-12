@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { applyRateLimit } from "@/lib/api-helpers";
 import { generateJSON } from "@/lib/ai/groq";
 import { WHATSAPP_SYSTEM_PROMPT, getWhatsAppPrompt } from "@/lib/ai/prompts";
 import type { WhatsAppComposerResponse } from "@/lib/ai/types";
 
 export async function POST(request: NextRequest) {
     try {
+        // Rate limiting
+        const rateLimitResponse = applyRateLimit(request, "general");
+        if (rateLimitResponse) return rateLimitResponse;
+
         const { propertyTitle, propertyDetails, agentName } = await request.json();
 
         if (!propertyTitle || !agentName) {

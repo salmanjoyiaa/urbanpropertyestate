@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, Loader2, BedDouble, MapPin, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { formatCurrency } from "@/lib/utils";
 
 interface Message {
@@ -136,6 +137,7 @@ export default function ChatWidget() {
                         <button
                             onClick={() => setIsOpen(false)}
                             className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"
+                            aria-label="Close chat"
                         >
                             <X className="h-5 w-5" />
                         </button>
@@ -171,11 +173,13 @@ export default function ChatWidget() {
                                                 >
                                                     <div className="flex">
                                                         {cover && (
-                                                            <div className="w-20 h-20 shrink-0">
-                                                                <img
+                                                            <div className="w-20 h-20 shrink-0 relative">
+                                                                <Image
                                                                     src={cover.url}
                                                                     alt={listing.title}
-                                                                    className="w-full h-full object-cover"
+                                                                    fill
+                                                                    sizes="80px"
+                                                                    className="object-cover"
                                                                 />
                                                             </div>
                                                         )}
@@ -238,6 +242,7 @@ export default function ChatWidget() {
                                 onClick={sendMessage}
                                 disabled={loading || !input.trim()}
                                 className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-50"
+                                aria-label="Send message"
                             >
                                 {loading ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />

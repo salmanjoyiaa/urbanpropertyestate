@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { applyRateLimit } from "@/lib/api-helpers";
 import { generateJSON } from "@/lib/ai/groq";
 import { getFraudPrompt } from "@/lib/ai/prompts";
 import { createClient } from "@/lib/supabase/server";
@@ -6,6 +7,10 @@ import type { FraudAnalysis } from "@/lib/ai/types";
 
 export async function POST(request: NextRequest) {
     try {
+        // Rate limiting
+        const rateLimitResponse = applyRateLimit(request, "general");
+        if (rateLimitResponse) return rateLimitResponse;
+
         const { propertyId } = await request.json();
 
         if (!propertyId) {

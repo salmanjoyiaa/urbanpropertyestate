@@ -124,7 +124,20 @@ export default function PropertyForm({
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
-        setNewFiles((prev) => [...prev, ...files]);
+        const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+        const valid: File[] = [];
+        const rejected: string[] = [];
+        for (const f of files) {
+            if (f.size > MAX_SIZE) {
+                rejected.push(f.name);
+            } else {
+                valid.push(f);
+            }
+        }
+        if (rejected.length > 0) {
+            setError(`Files too large (max 5 MB): ${rejected.join(", ")}`);
+        }
+        setNewFiles((prev) => [...prev, ...valid]);
     };
 
     const removeNewFile = (index: number) => {
@@ -247,8 +260,8 @@ export default function PropertyForm({
 
             router.push("/dashboard");
             router.refresh();
-        } catch (err: any) {
-            setError(err.message || "Failed to save property");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to save property");
         } finally {
             setLoading(false);
         }
@@ -371,6 +384,7 @@ export default function PropertyForm({
                                     <Input
                                         id="rent"
                                         type="number"
+                                        min="1"
                                         value={rent}
                                         onChange={(e) => setRent(e.target.value)}
                                         placeholder="1500"
@@ -382,6 +396,7 @@ export default function PropertyForm({
                                     <Input
                                         id="deposit"
                                         type="number"
+                                        min="0"
                                         value={deposit}
                                         onChange={(e) => setDeposit(e.target.value)}
                                         placeholder="3000"
@@ -611,7 +626,7 @@ export default function PropertyForm({
                             <label className="flex flex-col items-center gap-2 p-6 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors">
                                 <Upload className="h-8 w-8 text-muted-foreground" />
                                 <span className="text-sm text-muted-foreground">
-                                    Click to upload photos
+                                    Click to upload photos (max 5 MB each)
                                 </span>
                                 <input
                                     type="file"
@@ -673,6 +688,7 @@ export default function PropertyForm({
                                             <Input
                                                 type="date"
                                                 value={block.end_date}
+                                                min={block.start_date || undefined}
                                                 onChange={(e) => {
                                                     const updated = [...blocks];
                                                     updated[index].end_date = e.target.value;

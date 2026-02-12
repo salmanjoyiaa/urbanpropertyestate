@@ -31,14 +31,24 @@ export const CURRENCY_OPTIONS = [
     { value: "SAR", label: "SAR (﷼)", symbol: "﷼" },
 ];
 
+export function formatWhatsAppNumber(number: string): string {
+    if (!number) return "";
+    // Strip all non-digit characters and leading +
+    return number.replace(/[^\d]/g, "");
+}
+
 export function buildWhatsAppUrl(
     whatsappNumber: string,
     agentName: string,
     propertyTitle: string,
     propertyUrl: string
 ) {
+    const cleanNumber = formatWhatsAppNumber(whatsappNumber);
     const message = `Hi ${agentName}, I'm interested in ${propertyTitle}. Link: ${propertyUrl}`;
-    return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+    if (!cleanNumber) {
+        return "";
+    }
+    return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
 }
 
 export function getPropertyTypeLabel(type: string) {

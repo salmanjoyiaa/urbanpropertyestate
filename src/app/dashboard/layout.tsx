@@ -71,6 +71,12 @@ export default async function DashboardLayout({
                                     Analytics
                                 </Link>
                             </Button>
+                            <Button asChild variant="ghost" size="sm">
+                                <Link href="/dashboard/profile">
+                                    <User className="h-4 w-4 mr-2" />
+                                    Profile
+                                </Link>
+                            </Button>
                         </nav>
                     </div>
 
@@ -122,11 +128,11 @@ export default async function DashboardLayout({
                         Analytics
                     </Link>
                     <Link
-                        href="/"
+                        href="/dashboard/profile"
                         className="flex flex-col items-center gap-1 text-xs text-muted-foreground hover:text-foreground p-2"
                     >
-                        <Building2 className="h-5 w-5" />
-                        View Site
+                        <User className="h-5 w-5" />
+                        Profile
                     </Link>
                 </div>
             </div>

@@ -13,7 +13,7 @@ export default function LoginPage() {
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [mode, setMode] = useState<"signin" | "signup" | "magic">("signin");
+    const [mode, setMode] = useState<"signin" | "signup" | "magic" | "forgot">("signin");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
@@ -27,7 +27,13 @@ export default function LoginPage() {
         const supabase = createClient();
 
         try {
-            if (mode === "magic") {
+            if (mode === "forgot") {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${location.origin}/auth/callback`,
+                });
+                if (error) throw error;
+                setMessage("Check your email for the password reset link!");
+            } else if (mode === "magic") {
                 const { error } = await supabase.auth.signInWithOtp({
                     email,
                     options: { emailRedirectTo: `${location.origin}/auth/callback` },
@@ -51,8 +57,8 @@ export default function LoginPage() {
                 router.push("/dashboard");
                 router.refresh();
             }
-        } catch (err: any) {
-            setError(err.message || "An error occurred");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "An error occurred");
         } finally {
             setLoading(false);
         }
@@ -97,14 +103,20 @@ export default function LoginPage() {
 
                     <div>
                         <h1 className="font-display text-3xl font-bold">
-                            {mode === "signup" ? "Create Account" : "Welcome Back"}
+                            {mode === "signup"
+                                ? "Create Account"
+                                : mode === "forgot"
+                                    ? "Reset Password"
+                                    : "Welcome Back"}
                         </h1>
                         <p className="text-muted-foreground mt-2">
                             {mode === "signup"
                                 ? "Sign up as a property agent"
                                 : mode === "magic"
                                     ? "Sign in with a magic link"
-                                    : "Sign in to your agent dashboard"}
+                                    : mode === "forgot"
+                                        ? "Enter your email to receive a reset link"
+                                        : "Sign in to your agent dashboard"}
                         </p>
                     </div>
 
@@ -125,7 +137,7 @@ export default function LoginPage() {
                             </div>
                         </div>
 
-                        {mode !== "magic" && (
+                        {mode !== "magic" && mode !== "forgot" && (
                             <div className="space-y-2">
                                 <Label htmlFor="password">Password</Label>
                                 <div className="relative">
@@ -159,6 +171,11 @@ export default function LoginPage() {
                         <Button type="submit" size="lg" className="w-full" disabled={loading}>
                             {loading ? (
                                 "Loading..."
+                            ) : mode === "forgot" ? (
+                                <>
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    Send Reset Link
+                                </>
                             ) : mode === "magic" ? (
                                 <>
                                     <Sparkles className="mr-2 h-4 w-4" />
@@ -181,6 +198,12 @@ export default function LoginPage() {
                     <div className="space-y-3 text-center text-sm">
                         {mode === "signin" && (
                             <>
+                                <button
+                                    onClick={() => setMode("forgot")}
+                                    className="text-primary hover:underline block mx-auto"
+                                >
+                                    Forgot password?
+                                </button>
                                 <button
                                     onClick={() => setMode("magic")}
                                     className="text-primary hover:underline block mx-auto"
@@ -215,6 +238,14 @@ export default function LoginPage() {
                                 className="text-primary hover:underline"
                             >
                                 Back to password sign in
+                            </button>
+                        )}
+                        {mode === "forgot" && (
+                            <button
+                                onClick={() => setMode("signin")}
+                                className="text-primary hover:underline"
+                            >
+                                Back to sign in
                             </button>
                         )}
                     </div>

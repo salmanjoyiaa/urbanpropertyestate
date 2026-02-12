@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import type { Metadata } from "next";
 import {
     BedDouble,
     Bath,
@@ -16,6 +18,7 @@ import PropertyGallery from "@/components/property-gallery";
 import WhatsAppButton from "@/components/whatsapp-button";
 import AvailabilityCalendar from "@/components/availability-calendar";
 import PropertyAIFeatures from "@/components/property-ai-features";
+import InquiryButton from "@/components/inquiry-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -25,6 +28,33 @@ import type { Property } from "@/lib/types";
 
 interface Props {
     params: { id: string };
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+    try {
+        const supabase = createClient();
+        const { data } = await supabase
+            .from("properties")
+            .select("title, description, rent, currency, city, area, property_photos(url, is_cover)")
+            .eq("id", params.id)
+            .single();
+
+        if (!data) return { title: "Property Not Found" };
+
+        const coverPhoto = data.property_photos?.find((p: { is_cover: boolean }) => p.is_cover) || data.property_photos?.[0];
+
+        return {
+            title: data.title,
+            description: `${data.title} in ${data.area}, ${data.city}. ${data.currency} ${data.rent}/month. ${data.description?.slice(0, 150)}`,
+            openGraph: {
+                title: data.title,
+                description: `${data.title} — ${data.currency} ${data.rent}/month in ${data.area}, ${data.city}`,
+                images: coverPhoto ? [{ url: coverPhoto.url }] : [],
+            },
+        };
+    } catch {
+        return { title: "Property" };
+    }
 }
 
 export default async function PropertyDetailPage({ params }: Props) {
@@ -186,12 +216,14 @@ export default async function PropertyDetailPage({ params }: Props) {
                                 {agent && (
                                     <div className="rounded-2xl border p-6 space-y-4">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden relative">
                                                 {agent.photo_url ? (
-                                                    <img
+                                                    <Image
                                                         src={agent.photo_url}
                                                         alt={agent.name}
-                                                        className="w-full h-full rounded-full object-cover"
+                                                        fill
+                                                        sizes="56px"
+                                                        className="object-cover"
                                                     />
                                                 ) : (
                                                     <User className="h-6 w-6 text-primary" />
@@ -224,6 +256,14 @@ export default async function PropertyDetailPage({ params }: Props) {
                                         <Button asChild variant="outline" className="w-full">
                                             <Link href={`/agents/${agent.id}`}>View Profile</Link>
                                         </Button>
+
+                                        <InquiryButton
+                                            propertyTitle={property.title}
+                                            propertyId={property.id}
+                                            agentId={agent.id}
+                                            agentName={agent.name}
+                                            agentWhatsapp={agent.whatsapp_number || ""}
+                                        />
                                     </div>
                                 )}
 

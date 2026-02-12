@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { applyRateLimit } from "@/lib/api-helpers";
 import { generateJSON } from "@/lib/ai/groq";
 import {
     COPILOT_SYSTEM_PROMPT,
@@ -16,6 +17,10 @@ const MARKET_LANGUAGES: Record<string, string[]> = {
 
 export async function POST(request: NextRequest) {
     try {
+        // Rate limiting
+        const rateLimitResponse = applyRateLimit(request, "copilot");
+        if (rateLimitResponse) return rateLimitResponse;
+
         const body: CopilotRequest = await request.json();
         const { bulletPoints, tone, languages: requestedLangs, propertyData } = body;
 

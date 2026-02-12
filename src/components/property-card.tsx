@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { BedDouble, Bath, MapPin, User } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,10 +20,12 @@ export default function PropertyCard({ property }: PropertyCardProps) {
                 {/* Image */}
                 <div className="relative aspect-[4/3] overflow-hidden bg-muted">
                     {coverPhoto ? (
-                        <img
+                        <Image
                             src={coverPhoto.url}
                             alt={property.title}
-                            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            className="object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                     ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">

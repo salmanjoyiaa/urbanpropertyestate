@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import type { Metadata } from "next";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import HouseholdItemCard from "@/components/household-item-card";
@@ -7,6 +8,12 @@ import SkeletonCard from "@/components/skeleton-card";
 import { createClient } from "@/lib/supabase/server";
 import type { HouseholdItem } from "@/lib/types";
 import { Search, SlidersHorizontal, ShoppingBag, ArrowLeft } from "lucide-react";
+
+export const metadata: Metadata = {
+    title: "Marketplace — Household Items",
+    description:
+        "Buy and sell pre-owned household items — furniture, electronics, appliances and more from verified sellers across multiple cities.",
+};
 
 const CATEGORIES = [
     { value: "", label: "All Categories", emoji: "🏠" },

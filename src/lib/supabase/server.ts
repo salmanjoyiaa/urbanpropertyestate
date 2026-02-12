@@ -1,18 +1,27 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
 export function createClient() {
+    if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error(
+            "Missing Supabase environment variables. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local"
+        );
+    }
+
     const cookieStore = cookies();
 
     return createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        supabaseUrl,
+        supabaseAnonKey,
         {
             cookies: {
                 getAll() {
                     return cookieStore.getAll();
                 },
-                setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
+                setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
                     try {
                         cookiesToSet.forEach(({ name, value, options }) =>
                             cookieStore.set(name, value, options)

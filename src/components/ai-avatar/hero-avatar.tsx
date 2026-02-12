@@ -40,7 +40,7 @@ function AvatarScene({
 }) {
     return (
         <Canvas
-            camera={{ position: [0, 0.55, 1.8], fov: 26 }}
+            camera={{ position: [0, 0.5, 0.65], fov: 22 }}
             style={{ width: "100%", height: "100%" }}
             gl={{ antialias: true, alpha: true, toneMapping: 3 }}
             dpr={[1, 2]}
@@ -58,7 +58,7 @@ function AvatarScene({
                 />
                 <Environment preset="apartment" />
                 <ContactShadows
-                    position={[0, -1.55, 0]}
+                    position={[0, -1.15, 0]}
                     opacity={0.4}
                     scale={3}
                     blur={2}
@@ -72,7 +72,7 @@ function AvatarScene({
                 maxPolarAngle={Math.PI / 1.8}
                 minAzimuthAngle={-Math.PI / 8}
                 maxAzimuthAngle={Math.PI / 8}
-                target={[0, 0.5, 0]}
+                target={[0, 0.48, 0]}
             />
         </Canvas>
     );

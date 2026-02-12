@@ -210,7 +210,7 @@ export default function AvatarModel({
     });
 
     return (
-        <group ref={group} position={[0, -1.55, 0]} scale={1.3}>
+        <group ref={group} position={[0, -1.15, 0]} scale={1}>
             <primitive object={clonedScene} />
         </group>
     );

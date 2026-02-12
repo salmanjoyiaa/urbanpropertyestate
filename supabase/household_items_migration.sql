@@ -1,5 +1,5 @@
--- ==========================================================
--- Used Household Items — Schema & Seed Data
+﻿-- ==========================================================
+-- Used Household Items â€” Schema & Seed Data
 -- A marketplace for tenants/landlords selling used furniture
 -- and household items across US/Europe/Middle East
 --
@@ -91,133 +91,133 @@ CREATE TRIGGER update_household_items_updated_at
 
 
 -- =============================================
--- 5. SEED DATA — US ITEMS
+-- 5. SEED DATA â€” US ITEMS
 -- =============================================
 INSERT INTO public.household_items (id, seller_id, title, category, price, currency, condition, description, city, area, delivery_available, is_negotiable, status) VALUES
 
 -- New York items (sold by Michael Torres)
-('c1000000-0001-4000-c000-000000000001', 'a1000000-0001-4000-a000-000000000001',
+('c1000000-0001-4000-c000-000000000001', 'fe5fadba-9c0d-4411-ba6c-a6cdd053b7de',
  'West Elm Mid-Century Sofa - Walnut', 'furniture', 650, 'USD', 'good',
  'Beautiful mid-century modern sofa from West Elm. Walnut legs, dark gray upholstery. Minor wear on armrests but structurally perfect. Originally $1,299. Moving out, must sell!',
  'New York', 'Manhattan', true, true, 'available'),
 
-('c1000000-0002-4000-c000-000000000002', 'a1000000-0001-4000-a000-000000000001',
+('c1000000-0002-4000-c000-000000000002', 'fe5fadba-9c0d-4411-ba6c-a6cdd053b7de',
  'Samsung 55" 4K Smart TV (2024)', 'electronics', 380, 'USD', 'like_new',
  'Samsung Crystal UHD 55-inch Smart TV. Bought 6 months ago, barely used. Comes with original box, remote, and wall mount bracket. Perfect condition.',
  'New York', 'Brooklyn Heights', false, true, 'available'),
 
-('c1000000-0003-4000-c000-000000000003', 'a1000000-0001-4000-a000-000000000001',
+('c1000000-0003-4000-c000-000000000003', 'fe5fadba-9c0d-4411-ba6c-a6cdd053b7de',
  'KitchenAid Artisan Stand Mixer - Red', 'kitchen', 180, 'USD', 'good',
  'Classic KitchenAid 5-quart mixer in Empire Red. Includes 3 attachments (flat beater, dough hook, whisk). Some scratches on the bowl but works perfectly.',
  'New York', 'Manhattan', false, false, 'available'),
 
 -- Miami items (sold by Sarah Mitchell)
-('c1000000-0004-4000-c000-000000000004', 'a1000000-0002-4000-a000-000000000002',
+('c1000000-0004-4000-c000-000000000004', '7eb08b19-8434-462e-90dc-fddd232eb413',
  'IKEA MALM Queen Bed Frame - White', 'bedroom', 120, 'USD', 'good',
  'IKEA MALM queen bed frame in white. Includes 2 storage drawers underneath. Easy to disassemble. Some minor scratches on the headboard. Mattress NOT included.',
  'Miami', 'Brickell', true, true, 'available'),
 
-('c1000000-0005-4000-c000-000000000005', 'a1000000-0002-4000-a000-000000000002',
+('c1000000-0005-4000-c000-000000000005', '7eb08b19-8434-462e-90dc-fddd232eb413',
  'Dyson V12 Cordless Vacuum', 'appliances', 280, 'USD', 'like_new',
  'Dyson V12 Detect Slim vacuum. Laser dust detection, 60 min battery. Used for 3 months in a small apartment. All attachments included. Sells for $650 new.',
  'Miami', 'Wynwood', false, true, 'available'),
 
-('c1000000-0006-4000-c000-000000000006', 'a1000000-0002-4000-a000-000000000002',
+('c1000000-0006-4000-c000-000000000006', '7eb08b19-8434-462e-90dc-fddd232eb413',
  'Patio Dining Set - 4 Chairs + Table', 'outdoor', 350, 'USD', 'fair',
  'Aluminum patio dining set, weather-resistant. White table (48") with 4 cushioned chairs. Some sun fading on cushions but frames in great shape. Perfect for a balcony or small patio.',
  'Miami', 'Miami Beach', true, true, 'available'),
 
 
 -- =============================================
--- 6. SEED DATA — UK ITEMS (London)
+-- 6. SEED DATA â€” UK ITEMS (London)
 -- =============================================
-('c1000000-0007-4000-c000-000000000007', 'a1000000-0003-4000-a000-000000000003',
+('c1000000-0007-4000-c000-000000000007', 'fd3307c7-59af-48a7-b409-bd4d0c94fa4f',
  'John Lewis Leather Armchair', 'furniture', 320, 'GBP', 'good',
- 'Gorgeous tan leather armchair from John Lewis. Solid oak legs, deep comfortable seat. Slight patina adds character. Was £750 new. Collection from Kensington.',
+ 'Gorgeous tan leather armchair from John Lewis. Solid oak legs, deep comfortable seat. Slight patina adds character. Was Â£750 new. Collection from Kensington.',
  'London', 'Kensington', false, true, 'available'),
 
-('c1000000-0008-4000-c000-000000000008', 'a1000000-0003-4000-a000-000000000003',
+('c1000000-0008-4000-c000-000000000008', 'fd3307c7-59af-48a7-b409-bd4d0c94fa4f',
  'Smeg Retro Fridge - Pastel Blue', 'appliances', 450, 'GBP', 'good',
  'Iconic Smeg FAB28 retro fridge in pastel blue. 248L capacity. A few minor dents on the side (not visible when positioned). Still under warranty until Dec 2026.',
  'London', 'Chelsea', true, true, 'available'),
 
-('c1000000-0009-4000-c000-000000000009', 'a1000000-0003-4000-a000-000000000003',
+('c1000000-0009-4000-c000-000000000009', 'fd3307c7-59af-48a7-b409-bd4d0c94fa4f',
  'Bosch Washing Machine 9kg', 'appliances', 200, 'GBP', 'fair',
- 'Bosch Serie 6 washing machine. 9kg capacity, 1400rpm spin. Works perfectly, selling because new flat has one built-in. Can arrange delivery in London for £30.',
+ 'Bosch Serie 6 washing machine. 9kg capacity, 1400rpm spin. Works perfectly, selling because new flat has one built-in. Can arrange delivery in London for Â£30.',
  'London', 'Canary Wharf', true, true, 'available'),
 
 
 -- =============================================
--- 7. SEED DATA — SPAIN ITEMS (Barcelona)
+-- 7. SEED DATA â€” SPAIN ITEMS (Barcelona)
 -- =============================================
-('c1000000-0010-4000-c000-000000000010', 'a1000000-0004-4000-a000-000000000004',
+('c1000000-0010-4000-c000-000000000010', '32d99c56-3932-4b5d-a40a-79bcfc7a9186',
  'IKEA KALLAX Shelf Unit 4x4 - White', 'storage', 60, 'EUR', 'good',
  'IKEA KALLAX 4x4 shelf unit. Great condition, white finish. Perfect as a room divider or bookshelf. Can be disassembled for transport. Includes 4 insert boxes.',
  'Barcelona', 'Eixample', false, false, 'available'),
 
-('c1000000-0011-4000-c000-000000000011', 'a1000000-0004-4000-a000-000000000004',
+('c1000000-0011-4000-c000-000000000011', '32d99c56-3932-4b5d-a40a-79bcfc7a9186',
  'Philips Hue Starter Kit - 4 Bulbs + Bridge', 'lighting', 85, 'EUR', 'like_new',
  'Philips Hue White & Color Ambiance starter kit. 4 E27 smart bulbs + Hue Bridge. App controlled, voice compatible. Only used for 2 months. Perfect for smart home setup.',
- 'Barcelona', 'Gràcia', false, true, 'available'),
+ 'Barcelona', 'GrÃ cia', false, true, 'available'),
 
-('c1000000-0012-4000-c000-000000000012', 'a1000000-0004-4000-a000-000000000004',
+('c1000000-0012-4000-c000-000000000012', '32d99c56-3932-4b5d-a40a-79bcfc7a9186',
  'Handmade Moroccan Rug 200x300cm', 'decor', 280, 'EUR', 'good',
  'Authentic handwoven Berber rug from Morocco. Soft wool, geometric patterns in cream and terracotta. 200x300cm. Adds warmth and character to any living room. Professionally cleaned.',
  'Barcelona', 'Born', false, true, 'available'),
 
 
 -- =============================================
--- 8. SEED DATA — ITALY ITEMS (Rome)
+-- 8. SEED DATA â€” ITALY ITEMS (Rome)
 -- =============================================
-('c1000000-0013-4000-c000-000000000013', 'a1000000-0007-4000-a000-000000000007',
+('c1000000-0013-4000-c000-000000000013', '9f0a31ce-302d-4479-a3fa-8f0b1d5d7926',
  'Antique Italian Writing Desk', 'furniture', 450, 'EUR', 'fair',
  'Beautiful antique wooden writing desk, circa 1950s. Solid walnut with brass handles. Two drawers and a leather-inlay writing surface. Some age-related wear adds to its charm.',
  'Rome', 'Trastevere', false, true, 'available'),
 
-('c1000000-0014-4000-c000-000000000014', 'a1000000-0007-4000-a000-000000000007',
+('c1000000-0014-4000-c000-000000000014', '9f0a31ce-302d-4479-a3fa-8f0b1d5d7926',
  'DeLonghi Magnifica Espresso Machine', 'kitchen', 220, 'EUR', 'good',
- 'DeLonghi Magnifica S fully automatic espresso machine. Built-in grinder, milk frother. Descaled regularly, works perfectly. Make café-quality espresso at home. Was €550 new.',
+ 'DeLonghi Magnifica S fully automatic espresso machine. Built-in grinder, milk frother. Descaled regularly, works perfectly. Make cafÃ©-quality espresso at home. Was â‚¬550 new.',
  'Rome', 'Centro Storico', false, true, 'available'),
 
 
 -- =============================================
--- 9. SEED DATA — UAE ITEMS (Dubai)
+-- 9. SEED DATA â€” UAE ITEMS (Dubai)
 -- =============================================
-('c1000000-0015-4000-c000-000000000015', 'a1000000-0005-4000-a000-000000000005',
+('c1000000-0015-4000-c000-000000000015', '041520e2-115f-451b-9b14-2d8f24883cc5',
  'L-Shaped Sectional Sofa - Beige', 'furniture', 1800, 'AED', 'like_new',
  'Premium L-shaped sectional sofa in beige linen. Seats 5-6 comfortably. Only 4 months old, selling due to relocation. Includes 6 accent cushions. Delivery available in Dubai.',
  'Dubai', 'Dubai Marina', true, true, 'available'),
 
-('c1000000-0016-4000-c000-000000000016', 'a1000000-0005-4000-a000-000000000005',
+('c1000000-0016-4000-c000-000000000016', '041520e2-115f-451b-9b14-2d8f24883cc5',
  'LG 65" OLED TV with Soundbar', 'electronics', 3200, 'AED', 'good',
  'LG C3 65-inch OLED 4K TV with LG Soundbar. Stunning picture quality, Dolby Vision & Atmos. Wall mount included. Selling as upgrading to 77-inch. Was 6,500 AED new.',
  'Dubai', 'Downtown Dubai', false, true, 'available'),
 
-('c1000000-0017-4000-c000-000000000017', 'a1000000-0005-4000-a000-000000000005',
+('c1000000-0017-4000-c000-000000000017', '041520e2-115f-451b-9b14-2d8f24883cc5',
  'Kids Bedroom Set - Bunk Bed + Wardrobe', 'kids', 2500, 'AED', 'good',
  'Complete kids bedroom set from Pottery Barn Kids. Bunk bed (converts to 2 singles), matching wardrobe, and study desk. White finish. Ideal for ages 4-12. Can deliver in Dubai.',
  'Dubai', 'JBR', true, true, 'available'),
 
-('c1000000-0018-4000-c000-000000000018', 'a1000000-0005-4000-a000-000000000005',
+('c1000000-0018-4000-c000-000000000018', '041520e2-115f-451b-9b14-2d8f24883cc5',
  'Samsung French Door Fridge - Silver', 'appliances', 2800, 'AED', 'like_new',
  'Samsung RF28T5001SR French Door refrigerator. 28 cu. ft., twin cooling plus. Ice maker, water dispenser. Only 6 months old, selling because villa has built-in. Still under warranty.',
  'Dubai', 'Palm Jumeirah', true, false, 'available'),
 
 
 -- =============================================
--- 10. SEED DATA — SAUDI ITEMS (Riyadh)
+-- 10. SEED DATA â€” SAUDI ITEMS (Riyadh)
 -- =============================================
-('c1000000-0019-4000-c000-000000000019', 'a1000000-0006-4000-a000-000000000006',
+('c1000000-0019-4000-c000-000000000019', '144c444d-105c-48e9-b375-6d8202c131ad',
  'Majlis Seating Set - 8 Pieces', 'furniture', 3500, 'SAR', 'good',
  'Traditional Arabic majlis seating set. 8 floor cushions with backrests in burgundy and gold. Premium fabric, hand-stitched details. Perfect for a formal sitting room or guest area.',
  'Riyadh', 'Al Olaya', false, true, 'available'),
 
-('c1000000-0020-4000-c000-000000000020', 'a1000000-0006-4000-a000-000000000006',
+('c1000000-0020-4000-c000-000000000020', '144c444d-105c-48e9-b375-6d8202c131ad',
  'Split AC Unit - 2 Ton Carrier', 'appliances', 1200, 'SAR', 'fair',
  'Carrier 2-ton split AC unit. Powerful cooling, essential for Riyadh summers. Used for 2 years, professionally serviced every 6 months. Installation can be arranged.',
  'Riyadh', 'Diplomatic Quarter', true, true, 'available'),
 
--- Pakistan items (Karachi — reusing existing agent)
+-- Pakistan items (Karachi â€” reusing existing agent)
 ('c1000000-0021-4000-c000-000000000021', '036a28d0-fdf4-456b-9c65-df2ea8ed4e92',
  'Habitt Dining Table + 6 Chairs - Sheesham', 'furniture', 45000, 'PKR', 'good',
  'Solid sheesham wood dining table from Habitt with 6 matching chairs. Seats 6-8 comfortably. Minor scratches on surface, chairs in excellent condition. Was PKR 85,000 new.',

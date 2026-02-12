@@ -63,3 +63,49 @@ export interface PropertyFilters {
     beds?: number;
     search?: string;
 }
+
+export type HouseholdItemCategory =
+    | "furniture"
+    | "electronics"
+    | "appliances"
+    | "kitchen"
+    | "bedroom"
+    | "bathroom"
+    | "decor"
+    | "lighting"
+    | "storage"
+    | "outdoor"
+    | "kids"
+    | "other";
+
+export type ItemCondition = "like_new" | "good" | "fair" | "used";
+
+export interface HouseholdItem {
+    id: string;
+    seller_id: string;
+    title: string;
+    category: HouseholdItemCategory;
+    price: number;
+    currency: string;
+    condition: ItemCondition;
+    description: string;
+    city: string;
+    area: string;
+    delivery_available: boolean;
+    is_negotiable: boolean;
+    status: "available" | "reserved" | "sold" | "removed";
+    created_at: string;
+    updated_at: string;
+    // Joined data
+    seller?: Profile;
+    household_item_photos?: HouseholdItemPhoto[];
+}
+
+export interface HouseholdItemPhoto {
+    id: string;
+    item_id: string;
+    url: string;
+    position: number;
+    is_cover: boolean;
+    created_at: string;
+}

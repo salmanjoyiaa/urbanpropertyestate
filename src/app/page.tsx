@@ -1,24 +1,34 @@
 import Link from "next/link";
-import { ArrowRight, Building2, Shield, MessageCircle, Star, Clock, Wrench, Zap, Droplets, Paintbrush, Thermometer, Sparkles, PhoneCall } from "lucide-react";
+import { ArrowRight, Building2, Shield, MessageCircle, Star, Clock, Wrench, Zap, Droplets, Paintbrush, Thermometer, Sparkles, PhoneCall, ShoppingBag, Sofa } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import { createClient } from "@/lib/supabase/server";
 import PropertyCard from "@/components/property-card";
-import type { Property } from "@/lib/types";
+import HouseholdItemCard from "@/components/household-item-card";
+import type { Property, HouseholdItem } from "@/lib/types";
 
 export default async function HomePage() {
     let featuredProperties: Property[] = [];
+    let featuredItems: HouseholdItem[] = [];
 
     try {
         const supabase = createClient();
-        const { data } = await supabase
+        const { data: propData } = await supabase
             .from("properties")
             .select("*, agent:profiles(*), property_photos(*)")
             .eq("status", "published")
             .order("created_at", { ascending: false })
             .limit(6);
-        featuredProperties = (data as Property[]) || [];
+        featuredProperties = (propData as Property[]) || [];
+
+        const { data: itemData } = await supabase
+            .from("household_items")
+            .select("*, seller:profiles(*), household_item_photos(*)")
+            .eq("status", "available")
+            .order("created_at", { ascending: false })
+            .limit(8);
+        featuredItems = (itemData as HouseholdItem[]) || [];
     } catch {
         // Supabase not connected yet — show empty state
     }
@@ -27,8 +37,8 @@ export default async function HomePage() {
         <main className="min-h-screen">
             <Navbar />
 
-            {/* Hero Section */}
-            <section className="relative min-h-[90vh] flex items-center gradient-primary overflow-hidden">
+            {/* Hero Section — compact */}
+            <section className="relative min-h-[70vh] flex items-center gradient-primary overflow-hidden">
                 {/* Decorative elements */}
                 <div className="absolute inset-0 opacity-10">
                     <div className="absolute top-20 right-20 w-72 h-72 bg-blue-400 rounded-full blur-3xl animate-float" />
@@ -36,7 +46,7 @@ export default async function HomePage() {
                     <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-indigo-400 rounded-full blur-3xl animate-float" style={{ animationDelay: "1.5s" }} />
                 </div>
 
-                <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
+                <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
                     <div className="max-w-3xl">
                         <div className="animate-fade-in-up inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/90 text-sm mb-8">
                             <Star className="h-4 w-4 text-yellow-400" />
@@ -75,8 +85,104 @@ export default async function HomePage() {
                 </div>
             </section>
 
+            {/* Featured Properties — immediately after hero */}
+            {featuredProperties.length > 0 && (
+                <section className="py-16 lg:py-20">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex items-center justify-between mb-10">
+                            <div>
+                                <h2 className="font-display text-3xl font-bold mb-2">
+                                    Featured Properties
+                                </h2>
+                                <p className="text-muted-foreground">
+                                    Hand-picked rentals from our top agents
+                                </p>
+                            </div>
+                            <Button asChild variant="outline" className="hover:scale-[1.02] transition-transform">
+                                <Link href="/properties">
+                                    View All
+                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                </Link>
+                            </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
+                            {featuredProperties.map((property) => (
+                                <PropertyCard key={property.id} property={property} />
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {/* Used Household Items */}
+            <section className="py-16 lg:py-20 bg-gradient-to-br from-amber-50/50 to-orange-50/30">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center justify-between mb-10">
+                        <div>
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-100 text-amber-700 text-sm font-medium mb-4">
+                                <Sofa className="h-4 w-4" />
+                                Marketplace
+                            </div>
+                            <h2 className="font-display text-3xl font-bold mb-2">
+                                Used Household Items
+                            </h2>
+                            <p className="text-muted-foreground">
+                                Quality furniture, appliances & more from verified sellers
+                            </p>
+                        </div>
+                        <Button asChild variant="outline" className="hover:scale-[1.02] transition-transform">
+                            <Link href="/marketplace">
+                                Browse All
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </div>
+
+                    {featuredItems.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 stagger-children">
+                            {featuredItems.map((item) => (
+                                <HouseholdItemCard key={item.id} item={item} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-16 bg-background/50 rounded-2xl border border-dashed">
+                            <ShoppingBag className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
+                            <h3 className="font-display text-lg font-semibold mb-2">Coming Soon</h3>
+                            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                                Our marketplace for used household items is launching soon.
+                                List your furniture, appliances, and more!
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Category quick links */}
+                    <div className="mt-8 flex flex-wrap gap-2 justify-center">
+                        {[
+                            { emoji: "🛋️", label: "Furniture" },
+                            { emoji: "📺", label: "Electronics" },
+                            { emoji: "🔌", label: "Appliances" },
+                            { emoji: "🍳", label: "Kitchen" },
+                            { emoji: "🛏️", label: "Bedroom" },
+                            { emoji: "🖼️", label: "Decor" },
+                            { emoji: "💡", label: "Lighting" },
+                            { emoji: "☀️", label: "Outdoor" },
+                            { emoji: "🧸", label: "Kids" },
+                        ].map((cat) => (
+                            <Link
+                                key={cat.label}
+                                href={`/marketplace?category=${cat.label.toLowerCase()}`}
+                                className="px-4 py-2 rounded-full bg-background border text-sm hover:bg-primary/5 hover:border-primary/30 transition-colors"
+                            >
+                                {cat.emoji} {cat.label}
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
             {/* Value Props */}
-            <section className="py-20 bg-secondary/30">
+            <section className="py-16 lg:py-20 bg-secondary/30">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-12 animate-fade-in-up">
                         <h2 className="font-display text-3xl font-bold mb-4">
@@ -126,36 +232,6 @@ export default async function HomePage() {
                     </div>
                 </div>
             </section>
-
-            {/* Featured Properties */}
-            {featuredProperties.length > 0 && (
-                <section className="py-20">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex items-center justify-between mb-10">
-                            <div>
-                                <h2 className="font-display text-3xl font-bold mb-2">
-                                    Featured Properties
-                                </h2>
-                                <p className="text-muted-foreground">
-                                    Hand-picked rentals from our top agents
-                                </p>
-                            </div>
-                            <Button asChild variant="outline" className="hover:scale-[1.02] transition-transform">
-                                <Link href="/properties">
-                                    View All
-                                    <ArrowRight className="ml-2 h-4 w-4" />
-                                </Link>
-                            </Button>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
-                            {featuredProperties.map((property) => (
-                                <PropertyCard key={property.id} property={property} />
-                            ))}
-                        </div>
-                    </div>
-                </section>
-            )}
 
             {/* Maintenance Management Section */}
             <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50/50 overflow-hidden">

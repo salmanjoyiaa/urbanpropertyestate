@@ -6,6 +6,8 @@ import {
     Plus,
     LogOut,
     User,
+    Users,
+    BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -57,6 +59,18 @@ export default async function DashboardLayout({
                                     New Property
                                 </Link>
                             </Button>
+                            <Button asChild variant="ghost" size="sm">
+                                <Link href="/dashboard/leads">
+                                    <Users className="h-4 w-4 mr-2" />
+                                    Leads
+                                </Link>
+                            </Button>
+                            <Button asChild variant="ghost" size="sm">
+                                <Link href="/dashboard/analytics">
+                                    <BarChart3 className="h-4 w-4 mr-2" />
+                                    Analytics
+                                </Link>
+                            </Button>
                         </nav>
                     </div>
 
@@ -91,7 +105,21 @@ export default async function DashboardLayout({
                         className="flex flex-col items-center gap-1 text-xs text-muted-foreground hover:text-foreground p-2"
                     >
                         <Plus className="h-5 w-5" />
-                        New Listing
+                        New
+                    </Link>
+                    <Link
+                        href="/dashboard/leads"
+                        className="flex flex-col items-center gap-1 text-xs text-muted-foreground hover:text-foreground p-2"
+                    >
+                        <Users className="h-5 w-5" />
+                        Leads
+                    </Link>
+                    <Link
+                        href="/dashboard/analytics"
+                        className="flex flex-col items-center gap-1 text-xs text-muted-foreground hover:text-foreground p-2"
+                    >
+                        <BarChart3 className="h-5 w-5" />
+                        Analytics
                     </Link>
                     <Link
                         href="/"

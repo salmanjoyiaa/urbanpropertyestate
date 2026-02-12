@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Building2 } from "lucide-react";
+import { Menu, X, Building2, ShoppingBag } from "lucide-react";
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
@@ -34,6 +34,12 @@ export default function Navbar() {
                             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
                         >
                             Properties
+                        </Link>
+                        <Link
+                            href="/marketplace"
+                            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
+                        >
+                            Marketplace
                         </Link>
                         <Link
                             href="/login"
@@ -68,6 +74,13 @@ export default function Navbar() {
                         className="block text-sm font-medium text-muted-foreground hover:text-foreground py-2 transition-colors"
                     >
                         Properties
+                    </Link>
+                    <Link
+                        href="/marketplace"
+                        onClick={() => setIsOpen(false)}
+                        className="block text-sm font-medium text-muted-foreground hover:text-foreground py-2 transition-colors"
+                    >
+                        Marketplace
                     </Link>
                     <Link
                         href="/login"

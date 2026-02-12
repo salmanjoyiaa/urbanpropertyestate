@@ -53,7 +53,7 @@ export default function AvatarModel({
     isSpeaking,
     speakingText,
     isListening,
-    avatarUrl = "https://models.readyplayer.me/64bfa15f0e72c63d7c3934a6.glb?morphTargets=ARKit&textureAtlas=1024",
+    avatarUrl = "https://models.readyplayer.me/64bfa15f0e72c63d7c3934a6.glb?morphTargets=ARKit,Oculus+Visemes&textureAtlas=2048&quality=high",
 }: AvatarModelProps) {
     const group = useRef<THREE.Group>(null);
     const { scene, animations } = useGLTF(avatarUrl);

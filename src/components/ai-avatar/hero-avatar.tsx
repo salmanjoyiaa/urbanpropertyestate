@@ -42,11 +42,13 @@ function AvatarScene({
         <Canvas
             camera={{ position: [0, 0.1, 1.8], fov: 30 }}
             style={{ width: "100%", height: "100%" }}
-            gl={{ antialias: true, alpha: true }}
+            gl={{ antialias: true, alpha: true, toneMapping: 3 }}
+            dpr={[1, 2]}
         >
-            <ambientLight intensity={0.6} />
-            <directionalLight position={[2, 3, 5]} intensity={1} />
-            <directionalLight position={[-2, 1, -3]} intensity={0.3} />
+            <ambientLight intensity={0.5} />
+            <directionalLight position={[3, 4, 5]} intensity={1.2} color="#fff5ee" />
+            <directionalLight position={[-2, 2, -3]} intensity={0.4} color="#e8e0ff" />
+            <spotLight position={[0, 5, 2]} angle={0.4} penumbra={0.8} intensity={0.6} color="#ffffff" />
 
             <Suspense fallback={null}>
                 <AvatarModel

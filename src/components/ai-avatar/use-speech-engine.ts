@@ -23,7 +23,8 @@ export function useSpeechEngine(): UseSpeechEngineReturn {
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
-    const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const animFrameRef = useRef<number>(0);
     const streamRef = useRef<MediaStream | null>(null);
     const conversationRef = useRef<Array<{ role: string; content: string }>>([]);
 
@@ -35,8 +36,14 @@ export function useSpeechEngine(): UseSpeechEngineReturn {
             streamRef.current.getTracks().forEach((t) => t.stop());
             streamRef.current = null;
         }
-        if (synthRef.current) {
-            window.speechSynthesis.cancel();
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.src = "";
+            audioRef.current = null;
+        }
+        if (animFrameRef.current) {
+            cancelAnimationFrame(animFrameRef.current);
+            animFrameRef.current = 0;
         }
     }, []);
 
@@ -46,67 +53,99 @@ export function useSpeechEngine(): UseSpeechEngineReturn {
         setSpeakingText("");
     }, [cleanup]);
 
-    // Text-to-speech with viseme-driving callback
+    // Text-to-speech via ElevenLabs with lip-sync timing
     const speakResponse = useCallback((text: string): Promise<void> => {
-        return new Promise((resolve) => {
-            if (!("speechSynthesis" in window)) {
-                // No TTS support — just show text
-                setSpeakingText(text);
-                setTimeout(() => {
+        return new Promise(async (resolve) => {
+            try {
+                const res = await fetch("/api/ai/tts", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text }),
+                });
+
+                if (!res.ok) throw new Error("TTS request failed");
+
+                const audioBlob = await res.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                audioRef.current = audio;
+
+                const words = text.split(" ");
+
+                audio.onplay = () => {
+                    // Lip-sync loop: map audio progress to word position
+                    const animate = () => {
+                        if (!audioRef.current || audio.paused || audio.ended) return;
+                        const progress = audio.duration
+                            ? audio.currentTime / audio.duration
+                            : 0;
+                        const wordIdx = Math.floor(progress * words.length);
+                        const segment = words
+                            .slice(Math.max(0, wordIdx - 1), wordIdx + 2)
+                            .join(" ");
+                        setSpeakingText(segment);
+                        animFrameRef.current = requestAnimationFrame(animate);
+                    };
+                    animFrameRef.current = requestAnimationFrame(animate);
+                };
+
+                audio.onended = () => {
                     setSpeakingText("");
+                    URL.revokeObjectURL(audioUrl);
+                    audioRef.current = null;
+                    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
                     resolve();
-                }, text.length * 60); // rough timing
-                return;
-            }
+                };
 
-            const utterance = new SpeechSynthesisUtterance(text);
-            synthRef.current = utterance;
+                audio.onerror = () => {
+                    setSpeakingText("");
+                    URL.revokeObjectURL(audioUrl);
+                    audioRef.current = null;
+                    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+                    resolve();
+                };
 
-            // Pick a natural voice if available
-            const voices = window.speechSynthesis.getVoices();
-            const preferred = voices.find(
-                (v) =>
-                    v.lang.startsWith("en") &&
-                    (v.name.includes("Natural") ||
-                        v.name.includes("Google") ||
-                        v.name.includes("Samantha") ||
-                        v.name.includes("Daniel"))
-            );
-            if (preferred) utterance.voice = preferred;
-
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
-
-            // Drive lip sync by feeding progressively longer slices of text
-            const words = text.split(" ");
-            let wordIndex = 0;
-
-            utterance.onboundary = (event) => {
-                if (event.name === "word") {
-                    wordIndex++;
-                    // Feed the current word segment for viseme generation
-                    const currentSegment = words.slice(Math.max(0, wordIndex - 3), wordIndex + 1).join(" ");
-                    setSpeakingText(currentSegment);
+                audio.play().catch(() => {
+                    // Autoplay blocked — fallback to showing text only
+                    setSpeakingText(text);
+                    setTimeout(() => {
+                        setSpeakingText("");
+                        resolve();
+                    }, Math.max(text.length * 60, 3000));
+                });
+            } catch {
+                // ElevenLabs unavailable — fallback to browser SpeechSynthesis
+                if ("speechSynthesis" in window) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    const voices = window.speechSynthesis.getVoices();
+                    const preferred = voices.find(
+                        (v) =>
+                            v.lang.startsWith("en") &&
+                            (v.name.includes("Natural") ||
+                                v.name.includes("Google") ||
+                                v.name.includes("Samantha"))
+                    );
+                    if (preferred) utterance.voice = preferred;
+                    utterance.rate = 1.0;
+                    const uWords = text.split(" ");
+                    let wIdx = 0;
+                    utterance.onboundary = (e) => {
+                        if (e.name === "word") {
+                            wIdx++;
+                            setSpeakingText(
+                                uWords.slice(Math.max(0, wIdx - 2), wIdx + 1).join(" ")
+                            );
+                        }
+                    };
+                    utterance.onstart = () => setSpeakingText(uWords.slice(0, 2).join(" "));
+                    utterance.onend = () => { setSpeakingText(""); resolve(); };
+                    utterance.onerror = () => { setSpeakingText(""); resolve(); };
+                    window.speechSynthesis.speak(utterance);
+                } else {
+                    setSpeakingText(text);
+                    setTimeout(() => { setSpeakingText(""); resolve(); }, text.length * 60);
                 }
-            };
-
-            utterance.onstart = () => {
-                setSpeakingText(words.slice(0, 3).join(" "));
-            };
-
-            utterance.onend = () => {
-                setSpeakingText("");
-                synthRef.current = null;
-                resolve();
-            };
-
-            utterance.onerror = () => {
-                setSpeakingText("");
-                synthRef.current = null;
-                resolve();
-            };
-
-            window.speechSynthesis.speak(utterance);
+            }
         });
     }, []);
 

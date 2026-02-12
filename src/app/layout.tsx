@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import ChatWidget from "@/components/ai-receptionist/chat-widget";
+import { CartProvider } from "@/components/cart/cart-context";
+import CartDrawer from "@/components/cart/cart-drawer";
 
 const inter = Inter({
     subsets: ["latin"],
@@ -55,8 +57,11 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className={`${inter.variable} ${outfit.variable} font-sans antialiased`}>
-                {children}
-                <ChatWidget />
+                <CartProvider>
+                    {children}
+                    <CartDrawer />
+                    <ChatWidget />
+                </CartProvider>
             </body>
         </html>
     );

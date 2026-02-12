@@ -9,7 +9,7 @@ import PropertyCard from "@/components/property-card";
 import HouseholdItemCard from "@/components/household-item-card";
 import type { Property, HouseholdItem } from "@/lib/types";
 
-const HeroAvatar = dynamic(() => import("@/components/ai-avatar/hero-avatar"), {
+const HeroVoiceAgent = dynamic(() => import("@/components/ai-voice/hero-voice-agent"), {
     ssr: false,
     loading: () => (
         <div className="w-full flex items-center justify-center min-h-[280px]">
@@ -97,7 +97,7 @@ export default async function HomePage() {
 
                         {/* Right column — AI Avatar */}
                         <div className="animate-fade-in-up flex justify-center lg:justify-end" style={{ animationDelay: "0.4s" }}>
-                            <HeroAvatar />
+                            <HeroVoiceAgent />
                         </div>
                     </div>
                 </div>

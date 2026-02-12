@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Building2, ShoppingBag, LayoutDashboard, LogOut, User } from "lucide-react";
+import { Menu, X, Building2, ShoppingBag, ShoppingCart, LayoutDashboard, LogOut, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useCart } from "@/components/cart/cart-context";
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
@@ -13,6 +14,7 @@ export default function Navbar() {
     const [user, setUser] = useState<{ email?: string } | null>(null);
     const pathname = usePathname();
     const isHome = pathname === "/";
+    const { itemCount, toggleCart } = useCart();
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -67,6 +69,18 @@ export default function Navbar() {
                         </Link>
                         {user ? (
                             <>
+                                <button
+                                    onClick={toggleCart}
+                                    className={`relative text-sm font-medium ${textColor} ${hoverColor} transition-colors`}
+                                    aria-label="Open cart"
+                                >
+                                    <ShoppingCart className="h-5 w-5" />
+                                    {itemCount > 0 && (
+                                        <span className="absolute -top-2 -right-2 w-4.5 h-4.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                            {itemCount}
+                                        </span>
+                                    )}
+                                </button>
                                 <Link
                                     href="/dashboard"
                                     className={`text-sm font-medium ${textColor} ${hoverColor} transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-current after:transition-all after:duration-300 hover:after:w-full flex items-center gap-1.5`}
@@ -83,6 +97,18 @@ export default function Navbar() {
                             </>
                         ) : (
                             <>
+                                <button
+                                    onClick={toggleCart}
+                                    className={`relative text-sm font-medium ${textColor} ${hoverColor} transition-colors`}
+                                    aria-label="Open cart"
+                                >
+                                    <ShoppingCart className="h-5 w-5" />
+                                    {itemCount > 0 && (
+                                        <span className="absolute -top-2 -right-2 w-4.5 h-4.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                            {itemCount}
+                                        </span>
+                                    )}
+                                </button>
                                 <Link
                                     href="/login"
                                     className={`text-sm font-medium ${textColor} ${hoverColor} transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-current after:transition-all after:duration-300 hover:after:w-full`}

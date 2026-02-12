@@ -19,9 +19,15 @@ interface ReceptionistResponse {
         beds?: number;
         type?: string;
         amenities?: string[];
+        category?: string;
+        maxPrice?: number;
+        condition?: string;
     };
     intent: string;
     shouldShowListings: boolean;
+    shouldShowMarketplace?: boolean;
+    cartAction?: { action: string; itemType: string; itemId: string } | null;
+    captureLeadInfo?: { name?: string; phone?: string; interested_in?: string } | null;
 }
 
 export async function POST(request: NextRequest) {
@@ -49,17 +55,18 @@ export async function POST(request: NextRequest) {
         const aiResponse = await generateJSON<ReceptionistResponse>(prompt, {
             systemPrompt: RECEPTIONIST_SYSTEM_PROMPT,
             temperature: 0.7,
-            maxTokens: 500,
+            maxTokens: 600,
         });
 
-        // If AI wants to show listings, fetch matching ones
+        const supabase = createClient();
+
+        // Fetch matching property listings if AI requests it
         let listings: unknown[] = [];
         if (aiResponse.shouldShowListings && aiResponse.filters) {
             try {
-                const supabase = createClient();
                 let query = supabase
                     .from("properties")
-                    .select("id, title, city, area, rent, currency, beds, baths, type, property_photos(url, is_cover), agent:profiles(name, whatsapp_number)")
+                    .select("id, title, city, area, rent, currency, beds, baths, type, agent_id, property_photos(url, is_cover), agent:profiles(name, whatsapp_number)")
                     .eq("status", "published");
 
                 const f = aiResponse.filters;
@@ -76,11 +83,36 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // Fetch matching marketplace items if AI requests it
+        let marketplaceItems: unknown[] = [];
+        if (aiResponse.shouldShowMarketplace && aiResponse.filters) {
+            try {
+                let query = supabase
+                    .from("household_items")
+                    .select("id, title, city, area, price, currency, category, condition, seller_id, household_item_photos(url, is_cover), seller:profiles(name, whatsapp_number)")
+                    .eq("status", "available");
+
+                const f = aiResponse.filters;
+                if (f.city) query = query.ilike("city", `%${f.city}%`);
+                if (f.maxPrice) query = query.lte("price", f.maxPrice);
+                if (f.category) query = query.eq("category", f.category);
+                if (f.condition) query = query.eq("condition", f.condition);
+
+                const { data } = await query.limit(4).order("created_at", { ascending: false });
+                marketplaceItems = data || [];
+            } catch {
+                // Proceed without marketplace items
+            }
+        }
+
         return NextResponse.json({
             message: aiResponse.message,
             intent: aiResponse.intent,
             listings,
+            marketplaceItems,
             filters: aiResponse.filters,
+            cartAction: aiResponse.cartAction || null,
+            captureLeadInfo: aiResponse.captureLeadInfo || null,
         });
     } catch (error) {
         console.error("Receptionist API error:", error);
@@ -88,6 +120,7 @@ export async function POST(request: NextRequest) {
             message: "I'm having a moment — could you try again? 😊",
             intent: "error",
             listings: [],
+            marketplaceItems: [],
             filters: {},
         });
     }

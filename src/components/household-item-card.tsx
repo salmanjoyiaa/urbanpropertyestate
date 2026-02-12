@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +36,7 @@ interface HouseholdItemCardProps {
 }
 
 export default function HouseholdItemCard({ item }: HouseholdItemCardProps) {
+    const [imgError, setImgError] = useState(false);
     const coverPhoto = item.household_item_photos?.find((p) => p.is_cover) || item.household_item_photos?.[0];
     const conditionInfo = CONDITION_LABELS[item.condition] || CONDITION_LABELS.good;
     const categoryEmoji = CATEGORY_EMOJI[item.category] || "📎";
@@ -47,16 +51,17 @@ export default function HouseholdItemCard({ item }: HouseholdItemCardProps) {
         <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
             {/* Image */}
             <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-                {coverPhoto ? (
+                {coverPhoto && !imgError ? (
                     <Image
                         src={coverPhoto.url}
                         alt={item.title}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        onError={() => setImgError(true)}
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl">
+                    <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-muted to-muted/50">
                         {categoryEmoji}
                     </div>
                 )}

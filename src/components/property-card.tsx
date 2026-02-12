@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { BedDouble, Bath, MapPin, User } from "lucide-react";
@@ -11,6 +14,7 @@ interface PropertyCardProps {
 }
 
 export default function PropertyCard({ property }: PropertyCardProps) {
+    const [imgError, setImgError] = useState(false);
     const coverPhoto = property.property_photos?.find((p) => p.is_cover) ||
         property.property_photos?.[0];
 
@@ -19,16 +23,17 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             <Card className="group overflow-hidden hover:shadow-xl card-glow transition-all duration-300 hover:-translate-y-1">
                 {/* Image */}
                 <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-                    {coverPhoto ? (
+                    {coverPhoto && !imgError ? (
                         <Image
                             src={coverPhoto.url}
                             alt={property.title}
                             fill
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                             className="object-cover group-hover:scale-105 transition-transform duration-500"
+                            onError={() => setImgError(true)}
                         />
                     ) : (
-                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                        <div className="flex items-center justify-center h-full text-muted-foreground bg-gradient-to-br from-muted to-muted/50">
                             <Building2 className="h-12 w-12 opacity-30" />
                         </div>
                     )}

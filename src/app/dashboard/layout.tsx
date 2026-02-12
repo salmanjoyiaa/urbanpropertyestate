@@ -8,6 +8,7 @@ import {
     User,
     Users,
     BarChart3,
+    ShoppingBag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -72,6 +73,12 @@ export default async function DashboardLayout({
                                 </Link>
                             </Button>
                             <Button asChild variant="ghost" size="sm">
+                                <Link href="/dashboard/marketplace">
+                                    <ShoppingBag className="h-4 w-4 mr-2" />
+                                    Marketplace
+                                </Link>
+                            </Button>
+                            <Button asChild variant="ghost" size="sm">
                                 <Link href="/dashboard/profile">
                                     <User className="h-4 w-4 mr-2" />
                                     Profile
@@ -126,6 +133,13 @@ export default async function DashboardLayout({
                     >
                         <BarChart3 className="h-5 w-5" />
                         Analytics
+                    </Link>
+                    <Link
+                        href="/dashboard/marketplace"
+                        className="flex flex-col items-center gap-1 text-xs text-muted-foreground hover:text-foreground p-2"
+                    >
+                        <ShoppingBag className="h-5 w-5" />
+                        Market
                     </Link>
                     <Link
                         href="/dashboard/profile"

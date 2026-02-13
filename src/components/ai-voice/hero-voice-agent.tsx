@@ -85,9 +85,9 @@ export default function HeroVoiceAgent() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [recordSeconds, state]);
 
-    // Close modal when state leaves listening (went to thinking)
+    // Close modal only when recording finishes (state moves to thinking/speaking)
     useEffect(() => {
-        if (state !== "listening" && showRecordModal) {
+        if (showRecordModal && (state === "thinking" || state === "speaking")) {
             setShowRecordModal(false);
             if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
         }

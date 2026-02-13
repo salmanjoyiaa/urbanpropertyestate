@@ -40,6 +40,7 @@ export default function HouseholdItemCard({ item }: HouseholdItemCardProps) {
     const coverPhoto = item.household_item_photos?.find((p) => p.is_cover) || item.household_item_photos?.[0];
     const conditionInfo = CONDITION_LABELS[item.condition] || CONDITION_LABELS.good;
     const categoryEmoji = CATEGORY_EMOJI[item.category] || "📎";
+    const hasValidImage = coverPhoto && !imgError;
 
     const FALLBACK_WHATSAPP = "+923177779990";
     const whatsappNumber = item.seller?.whatsapp_number || FALLBACK_WHATSAPP;
@@ -48,7 +49,7 @@ export default function HouseholdItemCard({ item }: HouseholdItemCardProps) {
     );
 
     return (
-        <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        <Card className={`group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${!hasValidImage ? 'order-last' : ''}`}>
             {/* Image */}
             <div className="relative aspect-[4/3] overflow-hidden bg-muted">
                 {coverPhoto && !imgError ? (

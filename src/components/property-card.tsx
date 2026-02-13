@@ -17,9 +17,10 @@ export default function PropertyCard({ property }: PropertyCardProps) {
     const [imgError, setImgError] = useState(false);
     const coverPhoto = property.property_photos?.find((p) => p.is_cover) ||
         property.property_photos?.[0];
+    const hasValidImage = coverPhoto && !imgError;
 
     return (
-        <Link href={`/properties/${property.id}`}>
+        <Link href={`/properties/${property.id}`} className={!hasValidImage ? 'order-last' : ''}>
             <Card className="group overflow-hidden hover:shadow-xl card-glow transition-all duration-300 hover:-translate-y-1">
                 {/* Image */}
                 <div className="relative aspect-[4/3] overflow-hidden bg-muted">

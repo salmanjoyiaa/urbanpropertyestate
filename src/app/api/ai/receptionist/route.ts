@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateJSON } from "@/lib/ai/groq";
 import { RECEPTIONIST_SYSTEM_PROMPT, buildReceptionistPrompt } from "@/lib/ai/receptionist-prompts";
+import type { InventoryItem } from "@/lib/ai/receptionist-prompts";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit, sanitizeInput, AI_RATE_LIMITS } from "@/lib/rate-limit";
 
@@ -30,6 +31,22 @@ interface ReceptionistResponse {
     captureLeadInfo?: { name?: string; phone?: string; interested_in?: string } | null;
 }
 
+function toInventoryItem(row: Record<string, any>, type: "property" | "marketplace"): InventoryItem {
+    return {
+        id: row.id as string,
+        title: row.title as string,
+        city: row.city as string,
+        area: (row.area || "") as string,
+        price: type === "property" ? (row.rent as number) : (row.price as number),
+        currency: (row.currency || "AED") as string,
+        beds: row.beds as number | undefined,
+        baths: row.baths as number | undefined,
+        type: row.type as string | undefined,
+        category: row.category as string | undefined,
+        condition: row.condition as string | undefined,
+    };
+}
+
 export async function POST(request: NextRequest) {
     try {
         const body: ReceptionistRequest = await request.json();
@@ -50,19 +67,49 @@ export async function POST(request: NextRequest) {
         }
 
         const sanitizedMessage = sanitizeInput(message, 500);
-        const prompt = buildReceptionistPrompt(sanitizedMessage, history || [], context);
+        const supabase = createClient();
+
+        // Pre-fetch inventory so the AI can reference real items
+        let propertyInventory: InventoryItem[] = [];
+        let marketplaceInventory: InventoryItem[] = [];
+
+        try {
+            const [propResult, marketResult] = await Promise.all([
+                supabase
+                    .from("properties")
+                    .select("id, title, city, area, rent, currency, beds, baths, type")
+                    .eq("status", "published")
+                    .order("created_at", { ascending: false })
+                    .limit(8),
+                supabase
+                    .from("household_items")
+                    .select("id, title, city, area, price, currency, category, condition")
+                    .eq("status", "available")
+                    .order("created_at", { ascending: false })
+                    .limit(8),
+            ]);
+            propertyInventory = (propResult.data || []).map((r) => toInventoryItem(r as Record<string, any>, "property"));
+            marketplaceInventory = (marketResult.data || []).map((r) => toInventoryItem(r as Record<string, any>, "marketplace"));
+        } catch {
+            // Continue without inventory — AI will still work
+        }
+
+        const prompt = buildReceptionistPrompt(
+            sanitizedMessage,
+            history || [],
+            { properties: propertyInventory, marketplaceItems: marketplaceInventory },
+            context
+        );
 
         const aiResponse = await generateJSON<ReceptionistResponse>(prompt, {
             systemPrompt: RECEPTIONIST_SYSTEM_PROMPT,
-            temperature: 0.7,
-            maxTokens: 600,
+            temperature: 0.6,
+            maxTokens: 500,
         });
 
-        const supabase = createClient();
-
-        // Fetch matching property listings if AI requests it
+        // Fetch full listing data with photos for display cards
         let listings: unknown[] = [];
-        if (aiResponse.shouldShowListings && aiResponse.filters) {
+        if (aiResponse.shouldShowListings) {
             try {
                 let query = supabase
                     .from("properties")
@@ -70,11 +117,11 @@ export async function POST(request: NextRequest) {
                     .eq("status", "published");
 
                 const f = aiResponse.filters;
-                if (f.city) query = query.ilike("city", `%${f.city}%`);
-                if (f.minRent) query = query.gte("rent", f.minRent);
-                if (f.maxRent) query = query.lte("rent", f.maxRent);
-                if (f.beds) query = query.gte("beds", f.beds);
-                if (f.type) query = query.eq("type", f.type);
+                if (f?.city) query = query.ilike("city", `%${f.city}%`);
+                if (f?.minRent) query = query.gte("rent", f.minRent);
+                if (f?.maxRent) query = query.lte("rent", f.maxRent);
+                if (f?.beds) query = query.gte("beds", f.beds);
+                if (f?.type) query = query.eq("type", f.type);
 
                 const { data } = await query.limit(4).order("created_at", { ascending: false });
                 listings = data || [];
@@ -83,9 +130,9 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // Fetch matching marketplace items if AI requests it
+        // Fetch full marketplace data with photos for display cards
         let marketplaceItems: unknown[] = [];
-        if (aiResponse.shouldShowMarketplace && aiResponse.filters) {
+        if (aiResponse.shouldShowMarketplace) {
             try {
                 let query = supabase
                     .from("household_items")
@@ -93,10 +140,10 @@ export async function POST(request: NextRequest) {
                     .eq("status", "available");
 
                 const f = aiResponse.filters;
-                if (f.city) query = query.ilike("city", `%${f.city}%`);
-                if (f.maxPrice) query = query.lte("price", f.maxPrice);
-                if (f.category) query = query.eq("category", f.category);
-                if (f.condition) query = query.eq("condition", f.condition);
+                if (f?.city) query = query.ilike("city", `%${f.city}%`);
+                if (f?.maxPrice) query = query.lte("price", f.maxPrice);
+                if (f?.category) query = query.eq("category", f.category);
+                if (f?.condition) query = query.eq("condition", f.condition);
 
                 const { data } = await query.limit(4).order("created_at", { ascending: false });
                 marketplaceItems = data || [];
@@ -117,7 +164,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error("Receptionist API error:", error);
         return NextResponse.json({
-            message: "I'm having a moment — could you try again? 😊",
+            message: "I'm having a brief moment. Could you try again?",
             intent: "error",
             listings: [],
             marketplaceItems: [],

@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Mic, MicOff, Loader2, Send, X, MessageCircle, ShoppingCart } from "lucide-react";
+import { Mic, MicOff, Loader2, Send, X, MessageCircle, ShoppingCart, MapPin, BedDouble, Plus, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import VoiceOrb from "./voice-orb";
 import VoiceSubtitles from "./voice-subtitles";
 import { useVoiceAgent } from "./use-voice-agent";
+import type { Listing, MarketplaceItem } from "./use-voice-agent";
 import { useCart } from "@/components/cart/cart-context";
+import { formatCurrency } from "@/lib/utils";
 
 export default function HeroVoiceAgent() {
     const [showTextInput, setShowTextInput] = useState(false);
@@ -20,6 +23,8 @@ export default function HeroVoiceAgent() {
         speakingWordIndex,
         audioPlaying,
         cart: voiceCart,
+        listings,
+        marketplaceItems,
         analyserNode,
         micAnalyser,
         startListening,
@@ -29,7 +34,7 @@ export default function HeroVoiceAgent() {
         addToCart: voiceAddToCart,
     } = useVoiceAgent();
 
-    const { addItem, itemCount } = useCart();
+    const { addItem, itemCount, items: cartItems } = useCart();
 
     // Sync voice agent cart items to global cart context
     useEffect(() => {
@@ -63,7 +68,7 @@ export default function HeroVoiceAgent() {
     };
 
     return (
-        <div className="relative flex flex-col items-center w-full max-w-sm mx-auto">
+        <div className="relative flex flex-col items-center w-full max-w-md mx-auto">
             {/* Sound Wave Visualizer */}
             <div className="relative">
                 <VoiceOrb
@@ -89,6 +94,126 @@ export default function HeroVoiceAgent() {
                 speakingWordIndex={speakingWordIndex}
                 audioPlaying={audioPlaying}
             />
+
+            {/* Real-time Property Cards */}
+            {listings.length > 0 && (
+                <div className="w-full mt-3 animate-fade-in">
+                    <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory px-1">
+                        {listings.map((listing: Listing) => {
+                            const cover = listing.property_photos?.find((p) => p.is_cover) || listing.property_photos?.[0];
+                            const inCart = cartItems.some((c) => c.id === listing.id);
+                            return (
+                                <div key={listing.id} className="snap-start shrink-0 w-[200px] rounded-xl overflow-hidden bg-white/[0.08] border border-white/10 backdrop-blur-sm hover:bg-white/[0.12] transition-all group">
+                                    <Link href={`/properties/${listing.id}`} className="block">
+                                        {cover && (
+                                            <div className="w-full h-24 relative overflow-hidden">
+                                                <img src={cover.url} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                            </div>
+                                        )}
+                                        <div className="p-2.5">
+                                            <h4 className="text-xs font-semibold text-white line-clamp-1">{listing.title}</h4>
+                                            <div className="flex items-center gap-1 mt-1">
+                                                <MapPin className="h-3 w-3 text-white/50 shrink-0" />
+                                                <span className="text-[10px] text-white/50 line-clamp-1">{listing.area}, {listing.city}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between mt-1.5">
+                                                <span className="text-xs font-bold text-emerald-400">{formatCurrency(listing.rent, listing.currency)}/mo</span>
+                                                <span className="flex items-center gap-0.5 text-[10px] text-white/40">
+                                                    <BedDouble className="h-3 w-3" />{listing.beds}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                    <div className="px-2.5 pb-2">
+                                        <button
+                                            onClick={() => {
+                                                addItem({
+                                                    type: "property",
+                                                    id: listing.id,
+                                                    title: listing.title,
+                                                    price: listing.rent,
+                                                    currency: listing.currency,
+                                                    image: cover?.url,
+                                                    agentPhone: listing.agent?.whatsapp_number,
+                                                    agentName: listing.agent?.name,
+                                                    city: listing.city,
+                                                });
+                                            }}
+                                            disabled={inCart}
+                                            className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                                                inCart
+                                                    ? "bg-emerald-500/20 text-emerald-300 cursor-default"
+                                                    : "bg-white/10 hover:bg-emerald-500/20 text-white/70 hover:text-emerald-300"
+                                            }`}
+                                        >
+                                            {inCart ? "In Cart" : <><Plus className="h-3 w-3" /> Add to Cart</>}
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Real-time Marketplace Cards */}
+            {marketplaceItems.length > 0 && (
+                <div className="w-full mt-3 animate-fade-in">
+                    <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory px-1">
+                        {marketplaceItems.map((item: MarketplaceItem) => {
+                            const cover = item.household_item_photos?.find((p) => p.is_cover) || item.household_item_photos?.[0];
+                            const inCart = cartItems.some((c) => c.id === item.id);
+                            return (
+                                <div key={item.id} className="snap-start shrink-0 w-[200px] rounded-xl overflow-hidden bg-white/[0.08] border border-white/10 backdrop-blur-sm hover:bg-white/[0.12] transition-all group">
+                                    {cover && (
+                                        <div className="w-full h-24 relative overflow-hidden">
+                                            <img src={cover.url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                        </div>
+                                    )}
+                                    <div className="p-2.5">
+                                        <h4 className="text-xs font-semibold text-white line-clamp-1">{item.title}</h4>
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <Tag className="h-3 w-3 text-white/50 shrink-0" />
+                                            <span className="text-[10px] text-white/50 capitalize">{item.category} · {item.condition?.replace("_", " ")}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between mt-1.5">
+                                            <span className="text-xs font-bold text-emerald-400">{formatCurrency(item.price, item.currency)}</span>
+                                            <span className="flex items-center gap-0.5 text-[10px] text-white/40">
+                                                <MapPin className="h-3 w-3" />{item.city}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="px-2.5 pb-2">
+                                        <button
+                                            onClick={() => {
+                                                addItem({
+                                                    type: "marketplace",
+                                                    id: item.id,
+                                                    title: item.title,
+                                                    price: item.price,
+                                                    currency: item.currency,
+                                                    image: cover?.url,
+                                                    agentPhone: item.seller?.whatsapp_number,
+                                                    agentName: item.seller?.name,
+                                                    city: item.city,
+                                                });
+                                            }}
+                                            disabled={inCart}
+                                            className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                                                inCart
+                                                    ? "bg-emerald-500/20 text-emerald-300 cursor-default"
+                                                    : "bg-white/10 hover:bg-emerald-500/20 text-white/70 hover:text-emerald-300"
+                                            }`}
+                                        >
+                                            {inCart ? "In Cart" : <><Plus className="h-3 w-3" /> Add to Cart</>}
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Controls */}
             <div className="relative flex items-center gap-3 mt-4">

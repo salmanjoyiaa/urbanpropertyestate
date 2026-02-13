@@ -16,6 +16,35 @@ export interface CartItem {
     city?: string;
 }
 
+export interface Listing {
+    id: string;
+    title: string;
+    city: string;
+    area: string;
+    rent: number;
+    currency: string;
+    beds: number;
+    baths: number;
+    type: string;
+    agent_id?: string;
+    property_photos: { url: string; is_cover: boolean }[];
+    agent: { name: string; whatsapp_number: string };
+}
+
+export interface MarketplaceItem {
+    id: string;
+    title: string;
+    city: string;
+    area: string;
+    price: number;
+    currency: string;
+    category: string;
+    condition: string;
+    seller_id?: string;
+    household_item_photos: { url: string; is_cover: boolean }[];
+    seller: { name: string; whatsapp_number: string };
+}
+
 interface VoiceAgentReturn {
     state: VoiceState;
     transcript: string;
@@ -23,6 +52,8 @@ interface VoiceAgentReturn {
     speakingWordIndex: number;
     audioPlaying: boolean;
     cart: CartItem[];
+    listings: Listing[];
+    marketplaceItems: MarketplaceItem[];
     audioContext: AudioContext | null;
     analyserNode: AnalyserNode | null;
     micAnalyser: AnalyserNode | null;
@@ -41,6 +72,8 @@ export function useVoiceAgent(): VoiceAgentReturn {
     const [response, setResponse] = useState("");
     const [speakingWordIndex, setSpeakingWordIndex] = useState(0);
     const [cart, setCart] = useState<CartItem[]>([]);
+    const [listings, setListings] = useState<Listing[]>([]);
+    const [marketplaceItems, setMarketplaceItems] = useState<MarketplaceItem[]>([]);
     const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
     const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null);
     const [micAnalyser, setMicAnalyser] = useState<AnalyserNode | null>(null);
@@ -250,6 +283,16 @@ export function useVoiceAgent(): VoiceAgentReturn {
                 conversationRef.current.push({ role: "assistant", content: aiText });
                 setResponse(aiText);
 
+                // Update displayed listings and marketplace items
+                if (data.listings?.length) {
+                    setListings(data.listings);
+                } else if (data.shouldShowListings === false) {
+                    // Only clear if AI explicitly didn't request listings
+                }
+                if (data.marketplaceItems?.length) {
+                    setMarketplaceItems(data.marketplaceItems);
+                }
+
                 // Handle cart actions from AI
                 if (data.cartAction && data.cartAction.action === "add") {
                     const items = [...(data.listings || []), ...(data.marketplaceItems || [])];
@@ -423,6 +466,8 @@ export function useVoiceAgent(): VoiceAgentReturn {
         speakingWordIndex,
         audioPlaying,
         cart,
+        listings,
+        marketplaceItems,
         audioContext,
         analyserNode,
         micAnalyser,

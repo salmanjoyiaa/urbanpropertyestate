@@ -96,8 +96,9 @@ export default function HouseholdItemForm({ item, photos: initialPhotos = [] }: 
         }
 
         try {
-            if (!title.trim() || !price || parseInt(price) <= 0 || !city.trim() || !area.trim()) {
-                setError("Please fill in all required fields");
+            const parsedPrice = Math.round(Number(price));
+            if (!title.trim() || !price || !Number.isFinite(parsedPrice) || parsedPrice <= 0 || parsedPrice > 999999999 || !city.trim() || !area.trim()) {
+                setError("Please fill in all required fields (price must be between 1 and 999,999,999)");
                 setLoading(false);
                 return;
             }
@@ -106,7 +107,7 @@ export default function HouseholdItemForm({ item, photos: initialPhotos = [] }: 
                 seller_id: user.id,
                 title: title.trim(),
                 category,
-                price: parseInt(price),
+                price: parsedPrice,
                 currency,
                 condition,
                 description: description.trim(),
@@ -190,10 +191,6 @@ export default function HouseholdItemForm({ item, photos: initialPhotos = [] }: 
                         Back
                     </Link>
                 </Button>
-                <Button type="submit" disabled={loading} size="lg">
-                    <Save className="mr-2 h-4 w-4" />
-                    {loading ? "Saving..." : isEditing ? "Update" : "Create"}
-                </Button>
             </div>
 
             {error && <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg">{error}</div>}
@@ -224,7 +221,7 @@ export default function HouseholdItemForm({ item, photos: initialPhotos = [] }: 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <Label htmlFor="price">Price *</Label>
-                            <Input id="price" type="number" min="0" value={price} onChange={(e) => setPrice(e.target.value)} required />
+                            <Input id="price" type="number" min="1" max="999999999" step="1" value={price} onChange={(e) => setPrice(e.target.value)} required />
                         </div>
                         <div>
                             <Label htmlFor="currency">Currency</Label>
@@ -315,6 +312,11 @@ export default function HouseholdItemForm({ item, photos: initialPhotos = [] }: 
                     )}
                 </CardContent>
             </Card>
+
+            <Button type="submit" disabled={loading} size="lg" className="w-full">
+                <Save className="mr-2 h-4 w-4" />
+                {loading ? "Saving..." : isEditing ? "Update Item" : "Create Item"}
+            </Button>
         </form>
     );
 }

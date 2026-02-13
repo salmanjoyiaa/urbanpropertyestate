@@ -40,3 +40,41 @@ CREATE POLICY "Users can delete their own property photos"
     AND (storage.foldername(name))[1] = 'properties'
     AND (storage.foldername(name))[2] = auth.uid()::text
   );
+
+-- ======================================================
+-- Household Items Storage Bucket
+-- ======================================================
+
+-- Create the household-items bucket
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('household-items', 'household-items', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Allow public read access
+CREATE POLICY "Public read access for household item photos"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'household-items');
+
+-- Allow authenticated users to upload
+CREATE POLICY "Authenticated users can upload household item photos"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'household-items'
+    AND auth.role() = 'authenticated'
+  );
+
+-- Allow authenticated users to update their own files
+CREATE POLICY "Users can update their own household item photos"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'household-items'
+    AND auth.role() = 'authenticated'
+  );
+
+-- Allow authenticated users to delete their own files
+CREATE POLICY "Users can delete their own household item photos"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'household-items'
+    AND auth.role() = 'authenticated'
+  );

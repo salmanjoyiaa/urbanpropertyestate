@@ -21,6 +21,7 @@ interface VoiceAgentReturn {
     transcript: string;
     response: string;
     speakingWordIndex: number;
+    audioPlaying: boolean;
     cart: CartItem[];
     audioContext: AudioContext | null;
     analyserNode: AnalyserNode | null;
@@ -43,6 +44,7 @@ export function useVoiceAgent(): VoiceAgentReturn {
     const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
     const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null);
     const [micAnalyser, setMicAnalyser] = useState<AnalyserNode | null>(null);
+    const [audioPlaying, setAudioPlaying] = useState(false);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
@@ -97,6 +99,7 @@ export function useVoiceAgent(): VoiceAgentReturn {
         cleanup();
         setState("idle");
         setSpeakingWordIndex(0);
+        setAudioPlaying(false);
     }, [cleanup]);
 
     // Cart operations
@@ -136,6 +139,7 @@ export function useVoiceAgent(): VoiceAgentReturn {
                     if (ctx.state === "suspended") await ctx.resume();
 
                     audio.onplay = () => {
+                        setAudioPlaying(true);
                         // Connect audio element to analyser (only once per element)
                         if (analyserRef.current && !connectedAudiosRef.current.has(audio)) {
                             try {
@@ -160,6 +164,7 @@ export function useVoiceAgent(): VoiceAgentReturn {
 
                     audio.onended = () => {
                         setSpeakingWordIndex(words.length);
+                        setAudioPlaying(false);
                         URL.revokeObjectURL(audioUrl);
                         audioRef.current = null;
                         if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
@@ -167,6 +172,7 @@ export function useVoiceAgent(): VoiceAgentReturn {
                     };
 
                     audio.onerror = () => {
+                        setAudioPlaying(false);
                         URL.revokeObjectURL(audioUrl);
                         audioRef.current = null;
                         if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
@@ -175,6 +181,7 @@ export function useVoiceAgent(): VoiceAgentReturn {
 
                     audio.play().catch(() => {
                         // Autoplay blocked — fallback to timed text display
+                        setAudioPlaying(true);
                         const wordDelay = Math.max(text.length * 50, 2000);
                         let wIdx = 0;
                         const wInterval = setInterval(() => {
@@ -183,6 +190,7 @@ export function useVoiceAgent(): VoiceAgentReturn {
                                 wIdx++;
                             } else {
                                 clearInterval(wInterval);
+                                setAudioPlaying(false);
                                 resolve();
                             }
                         }, wordDelay / words.length);
@@ -197,19 +205,21 @@ export function useVoiceAgent(): VoiceAgentReturn {
                         utterance.rate = 1.0;
                         const uWords = text.split(" ");
                         let wIdx = 0;
+                        utterance.onstart = () => { setAudioPlaying(true); };
                         utterance.onboundary = (e) => {
                             if (e.name === "word") { wIdx++; setSpeakingWordIndex(wIdx); }
                         };
-                        utterance.onend = () => { setSpeakingWordIndex(uWords.length); resolve(); };
-                        utterance.onerror = () => resolve();
+                        utterance.onend = () => { setSpeakingWordIndex(uWords.length); setAudioPlaying(false); resolve(); };
+                        utterance.onerror = () => { setAudioPlaying(false); resolve(); };
                         window.speechSynthesis.speak(utterance);
                     } else {
                         // Last resort: timed text
+                        setAudioPlaying(true);
                         const words = text.split(" ");
                         let wIdx = 0;
                         const wInterval = setInterval(() => {
                             if (wIdx < words.length) { setSpeakingWordIndex(wIdx); wIdx++; }
-                            else { clearInterval(wInterval); resolve(); }
+                            else { clearInterval(wInterval); setAudioPlaying(false); resolve(); }
                         }, 100);
                     }
                 }
@@ -411,6 +421,7 @@ export function useVoiceAgent(): VoiceAgentReturn {
         transcript,
         response,
         speakingWordIndex,
+        audioPlaying,
         cart,
         audioContext,
         analyserNode,

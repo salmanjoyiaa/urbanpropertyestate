@@ -18,6 +18,7 @@ export default function HeroVoiceAgent() {
         transcript,
         response,
         speakingWordIndex,
+        audioPlaying,
         cart: voiceCart,
         analyserNode,
         micAnalyser,
@@ -43,10 +44,14 @@ export default function HeroVoiceAgent() {
         if (showTextInput && textInputRef.current) textInputRef.current.focus();
     }, [showTextInput]);
 
-    const handleMicClick = () => {
+    // Walkie-talkie: hold to talk, release to send
+    const handleMicDown = () => {
+        if (state === "speaking") { cancel(); return; }
+        if (state === "idle") startListening();
+    };
+
+    const handleMicUp = () => {
         if (state === "listening") stopListening();
-        else if (state === "speaking") cancel();
-        else startListening();
     };
 
     const handleTextSubmit = (e: React.FormEvent) => {
@@ -82,16 +87,20 @@ export default function HeroVoiceAgent() {
                 transcript={transcript}
                 response={response}
                 speakingWordIndex={speakingWordIndex}
+                audioPlaying={audioPlaying}
             />
 
             {/* Controls */}
-            <div className="flex items-center gap-3 mt-4">
-                {/* Mic button */}
+            <div className="relative flex items-center gap-3 mt-4">
+                {/* Mic button — walkie-talkie: hold to talk, release to send */}
                 <button
-                    onClick={handleMicClick}
+                    onPointerDown={handleMicDown}
+                    onPointerUp={handleMicUp}
+                    onPointerLeave={handleMicUp}
+                    onContextMenu={(e) => e.preventDefault()}
                     disabled={state === "thinking"}
-                    aria-label={state === "listening" ? "Stop listening" : "Start voice query"}
-                    className={`relative w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${
+                    aria-label={state === "listening" ? "Release to send" : "Hold to talk"}
+                    className={`relative w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg select-none touch-none ${
                         state === "listening"
                             ? "bg-red-500 hover:bg-red-600 text-white scale-110 shadow-red-500/40"
                             : state === "thinking"
@@ -117,6 +126,9 @@ export default function HeroVoiceAgent() {
                         </>
                     )}
                 </button>
+                {state === "idle" && (
+                    <span className="absolute -bottom-5 left-7 -translate-x-1/2 text-[10px] text-white/30 whitespace-nowrap pointer-events-none">Hold to talk</span>
+                )}
 
                 {/* Text toggle */}
                 <button

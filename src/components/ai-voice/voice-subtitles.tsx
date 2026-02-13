@@ -9,9 +9,10 @@ interface VoiceSubtitlesProps {
     transcript: string;
     response: string;
     speakingWordIndex: number;
+    audioPlaying: boolean;
 }
 
-export default function VoiceSubtitles({ state, transcript, response, speakingWordIndex }: VoiceSubtitlesProps) {
+export default function VoiceSubtitles({ state, transcript, response, speakingWordIndex, audioPlaying }: VoiceSubtitlesProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [displayedWords, setDisplayedWords] = useState<string[]>([]);
     const [showCustomerText, setShowCustomerText] = useState("");
@@ -32,9 +33,9 @@ export default function VoiceSubtitles({ state, transcript, response, speakingWo
         }
     }, [state]);
 
-    // Only start showing AI response words when state is "speaking" (not before)
+    // Only start showing AI response words when audio actually starts playing
     useEffect(() => {
-        if (state !== "speaking" || !response || response === prevResponseRef.current) return;
+        if (!audioPlaying || !response || response === prevResponseRef.current) return;
         prevResponseRef.current = response;
         const words = response.split(" ");
         setDisplayedWords([]);
@@ -48,7 +49,7 @@ export default function VoiceSubtitles({ state, transcript, response, speakingWo
             }
         }, 75);
         return () => clearInterval(interval);
-    }, [response, state]);
+    }, [response, audioPlaying]);
 
     // Reset displayed words after idle timeout
     useEffect(() => {
@@ -73,7 +74,7 @@ export default function VoiceSubtitles({ state, transcript, response, speakingWo
         return (
             <div className="text-center mt-3">
                 <p className="text-xs text-white/40 font-medium tracking-wide uppercase">
-                    Tap the mic to start a conversation
+                    Hold the mic to talk
                 </p>
             </div>
         );

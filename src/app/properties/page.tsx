@@ -77,6 +77,12 @@ async function PropertyGrid({ searchParams }: Props) {
             .range((page - 1) * pageSize, page * pageSize - 1);
         properties = (data as Property[]) || [];
         totalCount = count || 0;
+        // Sort: properties with photos first, no-photo properties at end
+        properties.sort((a, b) => {
+            const aHas = (a.property_photos?.length ?? 0) > 0 ? 0 : 1;
+            const bHas = (b.property_photos?.length ?? 0) > 0 ? 0 : 1;
+            return aHas - bHas;
+        });
     } catch {
         // Supabase not connected
     }

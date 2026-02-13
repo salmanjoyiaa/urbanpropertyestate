@@ -271,3 +271,9 @@ img {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Audio bounce for recording modal */
+@keyframes audioBounce {
+    0% { transform: scaleY(0.3); }
+    100% { transform: scaleY(1); }
+}

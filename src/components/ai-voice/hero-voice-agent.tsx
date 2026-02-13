@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Mic, MicOff, Loader2, Send, X, MessageCircle, ShoppingCart, MapPin, BedDouble, Plus, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -11,10 +11,17 @@ import type { Listing, MarketplaceItem } from "./use-voice-agent";
 import { useCart } from "@/components/cart/cart-context";
 import { formatCurrency } from "@/lib/utils";
 
+const MAX_RECORD_SECONDS = 15;
+
 export default function HeroVoiceAgent() {
     const [showTextInput, setShowTextInput] = useState(false);
     const [textInput, setTextInput] = useState("");
+    const [showRecordModal, setShowRecordModal] = useState(false);
+    const [recordSeconds, setRecordSeconds] = useState(0);
+    const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
     const textInputRef = useRef<HTMLInputElement>(null);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const startTimeRef = useRef(0);
 
     const {
         state,
@@ -36,6 +43,27 @@ export default function HeroVoiceAgent() {
 
     const { addItem, itemCount, items: cartItems } = useCart();
 
+    // Sort: items with valid images first, no-image / failed-image last
+    const sortedListings = [...listings].sort((a, b) => {
+        const aCover = a.property_photos?.find((p) => p.is_cover) || a.property_photos?.[0];
+        const bCover = b.property_photos?.find((p) => p.is_cover) || b.property_photos?.[0];
+        const aOk = aCover && !failedImages.has(aCover.url) ? 0 : 1;
+        const bOk = bCover && !failedImages.has(bCover.url) ? 0 : 1;
+        return aOk - bOk;
+    });
+
+    const sortedMarketplaceItems = [...marketplaceItems].sort((a, b) => {
+        const aCover = a.household_item_photos?.find((p) => p.is_cover) || a.household_item_photos?.[0];
+        const bCover = b.household_item_photos?.find((p) => p.is_cover) || b.household_item_photos?.[0];
+        const aOk = aCover && !failedImages.has(aCover.url) ? 0 : 1;
+        const bOk = bCover && !failedImages.has(bCover.url) ? 0 : 1;
+        return aOk - bOk;
+    });
+
+    const handleImgError = useCallback((url: string) => {
+        setFailedImages((prev) => new Set(prev).add(url));
+    }, []);
+
     // Sync voice agent cart items to global cart context
     useEffect(() => {
         if (voiceCart.length > 0) {
@@ -49,15 +77,40 @@ export default function HeroVoiceAgent() {
         if (showTextInput && textInputRef.current) textInputRef.current.focus();
     }, [showTextInput]);
 
-    // Walkie-talkie: hold to talk, release to send
-    const handleMicDown = () => {
-        if (state === "speaking") { cancel(); return; }
-        if (state === "idle") startListening();
-    };
+    // Auto-stop at max seconds
+    useEffect(() => {
+        if (recordSeconds >= MAX_RECORD_SECONDS && state === "listening") {
+            handleRelease();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [recordSeconds, state]);
 
-    const handleMicUp = () => {
-        if (state === "listening") stopListening();
-    };
+    // Close modal when state leaves listening (went to thinking)
+    useEffect(() => {
+        if (state !== "listening" && showRecordModal) {
+            setShowRecordModal(false);
+            if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+        }
+    }, [state, showRecordModal]);
+
+    const handlePress = useCallback(() => {
+        if (state === "speaking") { cancel(); return; }
+        if (state !== "idle") return;
+        setShowRecordModal(true);
+        setRecordSeconds(0);
+        startTimeRef.current = Date.now();
+        startListening();
+        timerRef.current = setInterval(() => {
+            const elapsed = (Date.now() - startTimeRef.current) / 1000;
+            setRecordSeconds(Math.min(elapsed, MAX_RECORD_SECONDS));
+        }, 50);
+    }, [state, cancel, startListening]);
+
+    const handleRelease = useCallback(() => {
+        if (state !== "listening") return;
+        stopListening();
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    }, [state, stopListening]);
 
     const handleTextSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -66,6 +119,10 @@ export default function HeroVoiceAgent() {
         setTextInput("");
         setShowTextInput(false);
     };
+
+    const progress = recordSeconds / MAX_RECORD_SECONDS;
+    const circumference = 2 * Math.PI * 54;
+    const dashOffset = circumference * (1 - progress);
 
     return (
         <div className="relative flex flex-col items-center w-full max-w-md mx-auto">
@@ -95,19 +152,24 @@ export default function HeroVoiceAgent() {
                 audioPlaying={audioPlaying}
             />
 
-            {/* Real-time Property Cards */}
-            {listings.length > 0 && (
+            {/* Real-time Property Cards — images first, failed/missing last */}
+            {sortedListings.length > 0 && (
                 <div className="w-full mt-3 animate-fade-in">
                     <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory px-1">
-                        {listings.map((listing: Listing) => {
+                        {sortedListings.map((listing: Listing) => {
                             const cover = listing.property_photos?.find((p) => p.is_cover) || listing.property_photos?.[0];
+                            const imgOk = cover && !failedImages.has(cover.url);
                             const inCart = cartItems.some((c) => c.id === listing.id);
                             return (
                                 <div key={listing.id} className="snap-start shrink-0 w-[200px] rounded-xl overflow-hidden bg-white/[0.08] border border-white/10 backdrop-blur-sm hover:bg-white/[0.12] transition-all group">
                                     <Link href={`/properties/${listing.id}`} className="block">
-                                        {cover && (
+                                        {imgOk ? (
                                             <div className="w-full h-24 relative overflow-hidden">
-                                                <img src={cover.url} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                                <img src={cover.url} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={() => handleImgError(cover.url)} />
+                                            </div>
+                                        ) : (
+                                            <div className="w-full h-24 flex items-center justify-center bg-white/[0.04] text-white/20">
+                                                <MapPin className="h-8 w-8" />
                                             </div>
                                         )}
                                         <div className="p-2.5">
@@ -156,18 +218,23 @@ export default function HeroVoiceAgent() {
                 </div>
             )}
 
-            {/* Real-time Marketplace Cards */}
-            {marketplaceItems.length > 0 && (
+            {/* Real-time Marketplace Cards — images first, failed/missing last */}
+            {sortedMarketplaceItems.length > 0 && (
                 <div className="w-full mt-3 animate-fade-in">
                     <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory px-1">
-                        {marketplaceItems.map((item: MarketplaceItem) => {
+                        {sortedMarketplaceItems.map((item: MarketplaceItem) => {
                             const cover = item.household_item_photos?.find((p) => p.is_cover) || item.household_item_photos?.[0];
+                            const imgOk = cover && !failedImages.has(cover.url);
                             const inCart = cartItems.some((c) => c.id === item.id);
                             return (
                                 <div key={item.id} className="snap-start shrink-0 w-[200px] rounded-xl overflow-hidden bg-white/[0.08] border border-white/10 backdrop-blur-sm hover:bg-white/[0.12] transition-all group">
-                                    {cover && (
+                                    {imgOk ? (
                                         <div className="w-full h-24 relative overflow-hidden">
-                                            <img src={cover.url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                            <img src={cover.url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={() => handleImgError(cover.url)} />
+                                        </div>
+                                    ) : (
+                                        <div className="w-full h-24 flex items-center justify-center bg-white/[0.04] text-white/20">
+                                            <Tag className="h-8 w-8" />
                                         </div>
                                     )}
                                     <div className="p-2.5">
@@ -217,18 +284,16 @@ export default function HeroVoiceAgent() {
 
             {/* Controls */}
             <div className="relative flex items-center gap-3 mt-4">
-                {/* Mic button — walkie-talkie: hold to talk, release to send */}
+                {/* Mic button — tap to open recording popup */}
                 <button
-                    onPointerDown={handleMicDown}
-                    onPointerUp={handleMicUp}
-                    onPointerLeave={handleMicUp}
-                    onContextMenu={(e) => e.preventDefault()}
+                    onClick={() => {
+                        if (state === "speaking") { cancel(); return; }
+                        if (state === "idle") handlePress();
+                    }}
                     disabled={state === "thinking"}
-                    aria-label={state === "listening" ? "Release to send" : "Hold to talk"}
-                    className={`relative w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg select-none touch-none ${
-                        state === "listening"
-                            ? "bg-red-500 hover:bg-red-600 text-white scale-110 shadow-red-500/40"
-                            : state === "thinking"
+                    aria-label={state === "speaking" ? "Stop" : "Record message"}
+                    className={`relative w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg select-none ${
+                        state === "thinking"
                             ? "bg-white/20 text-white/50 cursor-wait"
                             : state === "speaking"
                             ? "bg-purple-500 hover:bg-purple-600 text-white shadow-purple-500/30"
@@ -237,22 +302,14 @@ export default function HeroVoiceAgent() {
                 >
                     {state === "thinking" ? (
                         <Loader2 className="h-6 w-6 animate-spin" />
-                    ) : state === "listening" ? (
-                        <MicOff className="h-6 w-6" />
                     ) : state === "speaking" ? (
                         <X className="h-5 w-5" />
                     ) : (
                         <Mic className="h-6 w-6" />
                     )}
-                    {state === "listening" && (
-                        <>
-                            <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-20" />
-                            <span className="absolute inset-[-4px] rounded-full border-2 border-red-400/30 animate-pulse" />
-                        </>
-                    )}
                 </button>
-                {state === "idle" && (
-                    <span className="absolute -bottom-5 left-7 -translate-x-1/2 text-[10px] text-white/30 whitespace-nowrap pointer-events-none">Hold to talk</span>
+                {state === "idle" && !showRecordModal && (
+                    <span className="absolute -bottom-5 left-7 -translate-x-1/2 text-[10px] text-white/30 whitespace-nowrap pointer-events-none">Tap to record</span>
                 )}
 
                 {/* Text toggle */}
@@ -267,10 +324,7 @@ export default function HeroVoiceAgent() {
                 {/* Cart button */}
                 {itemCount > 0 && (
                     <button
-                        onClick={() => {
-                            // Dispatch event to open cart drawer
-                            window.dispatchEvent(new CustomEvent("toggle-cart"));
-                        }}
+                        onClick={() => window.dispatchEvent(new CustomEvent("toggle-cart"))}
                         aria-label="View cart"
                         className="relative w-11 h-11 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 flex items-center justify-center transition-all backdrop-blur-sm hover:scale-105 border border-emerald-500/20"
                     >
@@ -281,6 +335,81 @@ export default function HeroVoiceAgent() {
                     </button>
                 )}
             </div>
+
+            {/* Recording Pop-up Modal */}
+            {showRecordModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div
+                        className="relative flex flex-col items-center gap-5 p-8 rounded-3xl bg-gradient-to-b from-slate-900/95 to-slate-950/95 border border-white/10 shadow-2xl shadow-black/50 w-[300px] animate-scale-in"
+                        onPointerDown={(e) => e.stopPropagation()}
+                    >
+                        {/* Timer ring + mic button */}
+                        <div className="relative flex items-center justify-center">
+                            <svg width="130" height="130" className="absolute -rotate-90">
+                                <circle cx="65" cy="65" r="54" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
+                                <circle
+                                    cx="65" cy="65" r="54"
+                                    fill="none"
+                                    stroke={progress > 0.8 ? "#ef4444" : "#f43f5e"}
+                                    strokeWidth="4"
+                                    strokeLinecap="round"
+                                    strokeDasharray={circumference}
+                                    strokeDashoffset={dashOffset}
+                                    className="transition-[stroke-dashoffset] duration-100 ease-linear"
+                                    style={{ filter: `drop-shadow(0 0 6px ${progress > 0.8 ? "rgba(239,68,68,0.5)" : "rgba(244,63,94,0.4)"})` }}
+                                />
+                            </svg>
+
+                            <button
+                                onPointerDown={(e) => e.preventDefault()}
+                                onPointerUp={handleRelease}
+                                onPointerLeave={handleRelease}
+                                onContextMenu={(e) => e.preventDefault()}
+                                className="relative z-10 w-24 h-24 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center shadow-lg shadow-rose-500/30 active:scale-95 transition-transform select-none touch-none"
+                                aria-label="Release to send"
+                            >
+                                <MicOff className="h-8 w-8" />
+                                <span className="absolute inset-0 rounded-full bg-rose-400 animate-ping opacity-15" />
+                                <span className="absolute inset-[-6px] rounded-full border-2 border-rose-400/20 animate-pulse" />
+                            </button>
+                        </div>
+
+                        {/* Live audio bars */}
+                        <div className="flex items-end justify-center gap-[3px] h-8 w-32">
+                            {Array.from({ length: 20 }).map((_, i) => (
+                                <div
+                                    key={i}
+                                    className="w-[4px] rounded-full bg-gradient-to-t from-rose-500 to-rose-300"
+                                    style={{
+                                        height: `${8 + Math.random() * 24}px`,
+                                        animation: `audioBounce ${0.3 + Math.random() * 0.4}s ease-in-out ${i * 0.05}s infinite alternate`,
+                                    }}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Status text */}
+                        <div className="text-center space-y-1">
+                            <p className="text-sm font-medium text-white/90">Recording...</p>
+                            <p className="text-xs text-white/40">
+                                {Math.ceil(MAX_RECORD_SECONDS - recordSeconds)}s remaining · Release to send
+                            </p>
+                        </div>
+
+                        {/* Cancel */}
+                        <button
+                            onClick={() => {
+                                cancel();
+                                setShowRecordModal(false);
+                                if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+                            }}
+                            className="text-xs text-white/30 hover:text-white/60 transition-colors mt-1"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Expandable text input */}
             {showTextInput && (

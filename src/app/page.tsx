@@ -31,6 +31,12 @@ export default async function HomePage() {
             .order("created_at", { ascending: false })
             .limit(6);
         featuredProperties = (propData as Property[]) || [];
+        // Sort: items with photos first, no-photo items last
+        featuredProperties.sort((a, b) => {
+            const aHas = (a.property_photos?.length ?? 0) > 0 ? 0 : 1;
+            const bHas = (b.property_photos?.length ?? 0) > 0 ? 0 : 1;
+            return aHas - bHas;
+        });
 
         const { data: itemData } = await supabase
             .from("household_items")
@@ -39,6 +45,11 @@ export default async function HomePage() {
             .order("created_at", { ascending: false })
             .limit(8);
         featuredItems = (itemData as HouseholdItem[]) || [];
+        featuredItems.sort((a, b) => {
+            const aHas = (a.household_item_photos?.length ?? 0) > 0 ? 0 : 1;
+            const bHas = (b.household_item_photos?.length ?? 0) > 0 ? 0 : 1;
+            return aHas - bHas;
+        });
     } catch {
         // Supabase not connected yet — show empty state
     }

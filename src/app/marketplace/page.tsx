@@ -83,6 +83,12 @@ async function ItemGrid({ searchParams }: Props) {
         const { data, count } = await query.limit(48);
         items = (data as HouseholdItem[]) || [];
         totalCount = count || 0;
+        // Sort: items with photos first, no-photo items at end
+        items.sort((a, b) => {
+            const aHas = (a.household_item_photos?.length ?? 0) > 0 ? 0 : 1;
+            const bHas = (b.household_item_photos?.length ?? 0) > 0 ? 0 : 1;
+            return aHas - bHas;
+        });
     } catch {
         // Supabase not connected
     }

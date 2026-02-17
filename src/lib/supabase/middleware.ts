@@ -36,11 +36,45 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser();
 
-    // Protect dashboard routes
-    if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
+    const pathname = request.nextUrl.pathname;
+
+    // Protect all dashboard routes — require authentication
+    if (!user && pathname.startsWith("/dashboard")) {
         const url = request.nextUrl.clone();
         url.pathname = "/login";
         return NextResponse.redirect(url);
+    }
+
+    // Role-based routing for dashboard sub-paths
+    if (user && pathname.startsWith("/dashboard")) {
+        const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .single();
+
+        const role = profile?.role || "customer";
+
+        // Customers can't access any dashboard
+        if (role === "customer") {
+            const url = request.nextUrl.clone();
+            url.pathname = "/";
+            return NextResponse.redirect(url);
+        }
+
+        // Agents can't access admin routes
+        if (role === "agent" && pathname.startsWith("/dashboard/admin")) {
+            const url = request.nextUrl.clone();
+            url.pathname = "/dashboard/agent";
+            return NextResponse.redirect(url);
+        }
+
+        // Redirect base /dashboard to role-specific dashboard
+        if (pathname === "/dashboard" || pathname === "/dashboard/") {
+            const url = request.nextUrl.clone();
+            url.pathname = role === "admin" ? "/dashboard/admin" : "/dashboard/agent";
+            return NextResponse.redirect(url);
+        }
     }
 
     return supabaseResponse;

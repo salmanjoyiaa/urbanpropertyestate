@@ -1,30 +1,27 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import type { Metadata } from "next";
 import {
     BedDouble,
     Bath,
     Maximize,
-    MapPin,
     Calendar,
     Armchair,
     ArrowLeft,
-    User,
+    MapPin,
 } from "lucide-react";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import PropertyGallery from "@/components/property-gallery";
-import WhatsAppButton from "@/components/whatsapp-button";
 import AvailabilityCalendar from "@/components/availability-calendar";
 import PropertyAIFeatures from "@/components/property-ai-features";
-import InquiryButton from "@/components/inquiry-button";
+import BookingForm from "@/components/booking-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, getPropertyTypeLabel } from "@/lib/utils";
-import type { Property } from "@/lib/types";
+import type { Property, AvailabilitySlot } from "@/lib/types";
 
 interface Props {
     params: { id: string };
@@ -59,17 +56,35 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PropertyDetailPage({ params }: Props) {
     let property: Property | null = null;
+    let availabilitySlots: AvailabilitySlot[] = [];
 
     try {
         const supabase = createClient();
+
+        // Fetch property with photos and blocks (no agent identity for public)
         const { data } = await supabase
             .from("properties")
             .select(
-                "*, agent:profiles(*), property_photos(*), property_blocks(*)"
+                "id, title, type, rent, deposit, currency, city, area, street_address, beds, baths, size_sqft, furnished, amenities, description, status, created_at, updated_at, agent_id, property_photos(*), property_blocks(*)"
             )
             .eq("id", params.id)
+            .eq("status", "published")
             .single();
         property = data as Property;
+
+        // Fetch available slots for this property (future dates only)
+        if (property) {
+            const today = new Date().toISOString().split("T")[0];
+            const { data: slots } = await supabase
+                .from("availability_slots")
+                .select("id, property_id, slot_date, start_time, end_time, capacity, is_available")
+                .eq("property_id", property.id)
+                .eq("is_available", true)
+                .gte("slot_date", today)
+                .order("slot_date", { ascending: true })
+                .order("start_time", { ascending: true });
+            availabilitySlots = (slots as AvailabilitySlot[]) || [];
+        }
     } catch {
         // Supabase not connected
     }
@@ -78,7 +93,6 @@ export default async function PropertyDetailPage({ params }: Props) {
         notFound();
     }
 
-    const agent = property.agent;
     const photos = property.property_photos || [];
     const blocks = property.property_blocks || [];
 
@@ -199,7 +213,7 @@ export default async function PropertyDetailPage({ params }: Props) {
                                 </div>
                             )}
 
-                            {/* Availability */}
+                            {/* Availability Calendar (block dates) */}
                             {blocks.length > 0 && (
                                 <div>
                                     <h2 className="font-display text-xl font-semibold mb-4">
@@ -210,86 +224,25 @@ export default async function PropertyDetailPage({ params }: Props) {
                             )}
                         </div>
 
-                        {/* Sidebar - Agent Card */}
+                        {/* Sidebar - Booking Form (no agent identity exposed) */}
                         <div className="lg:col-span-1">
                             <div className="sticky top-24 space-y-4">
-                                {agent && (
-                                    <div className="rounded-2xl border p-6 space-y-4">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden relative">
-                                                {agent.photo_url ? (
-                                                    <Image
-                                                        src={agent.photo_url}
-                                                        alt={agent.name}
-                                                        fill
-                                                        sizes="56px"
-                                                        className="object-cover"
-                                                    />
-                                                ) : (
-                                                    <User className="h-6 w-6 text-primary" />
-                                                )}
-                                            </div>
-                                            <div>
-                                                <h3 className="font-semibold">{agent.name}</h3>
-                                                <p className="text-sm text-muted-foreground">
-                                                    Verified Agent
-                                                </p>
-                                            </div>
-                                        </div>
+                                {/* Visit Booking Form */}
+                                <BookingForm
+                                    propertyId={property.id}
+                                    propertyTitle={property.title}
+                                    slots={availabilitySlots}
+                                />
 
-                                        {agent.bio && (
-                                            <p className="text-sm text-muted-foreground line-clamp-3">
-                                                {agent.bio}
-                                            </p>
-                                        )}
-
-                                        {agent.service_areas && agent.service_areas.length > 0 && (
-                                            <div className="flex flex-wrap gap-1">
-                                                {agent.service_areas.map((area) => (
-                                                    <Badge key={area} variant="outline" className="text-xs">
-                                                        {area}
-                                                    </Badge>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        <Button asChild variant="outline" className="w-full">
-                                            <Link href={`/agents/${agent.id}`}>View Profile</Link>
-                                        </Button>
-
-                                        <InquiryButton
-                                            propertyTitle={property.title}
-                                            propertyId={property.id}
-                                            agentId={agent.id}
-                                            agentName={agent.name}
-                                            agentWhatsapp={agent.whatsapp_number || ""}
-                                        />
-                                    </div>
-                                )}
-
-                                {/* WhatsApp CTA with AI */}
-                                {agent && (
-                                    <PropertyAIFeatures
-                                        description={property.description}
-                                        price={property.rent}
-                                        currency={property.currency}
-                                        propertyId={property.id}
-                                        propertyTitle={property.title}
-                                        agentName={agent.name}
-                                        whatsappNumber={agent.whatsapp_number}
-                                        propertyDetails={{
-                                            type: property.type,
-                                            beds: property.beds,
-                                            baths: property.baths,
-                                            area: property.area,
-                                            city: property.city,
-                                            rent: property.rent,
-                                            currency: property.currency,
-                                            amenities: property.amenities,
-                                            furnished: property.furnished,
-                                        }}
-                                    />
-                                )}
+                                {/* Property managed by UrbanEstate - no agent identity */}
+                                <div className="rounded-2xl border p-4 text-center">
+                                    <p className="text-sm text-muted-foreground">
+                                        Managed by <span className="font-semibold text-foreground">UrbanEstate</span>
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Schedule a visit above and our team will contact you
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -297,27 +250,21 @@ export default async function PropertyDetailPage({ params }: Props) {
             </div>
 
             {/* Mobile Sticky CTA */}
-            {agent && (
-                <div className="fixed bottom-0 left-0 right-0 p-4 glass border-t lg:hidden z-50">
-                    <div className="flex items-center justify-between gap-3">
-                        <div>
-                            <div className="font-display font-bold text-lg">
-                                {formatCurrency(property.rent, property.currency)}
-                                <span className="text-sm font-normal text-muted-foreground">
-                                    /mo
-                                </span>
-                            </div>
+            <div className="fixed bottom-0 left-0 right-0 p-4 glass border-t lg:hidden z-50">
+                <div className="flex items-center justify-between gap-3">
+                    <div>
+                        <div className="font-display font-bold text-lg">
+                            {formatCurrency(property.rent, property.currency)}
+                            <span className="text-sm font-normal text-muted-foreground">
+                                /mo
+                            </span>
                         </div>
-                        <WhatsAppButton
-                            whatsappNumber={agent.whatsapp_number}
-                            agentName={agent.name}
-                            propertyTitle={property.title}
-                            propertyId={property.id}
-                            size="lg"
-                        />
                     </div>
+                    <Button asChild size="lg">
+                        <a href="#booking-section">Schedule Visit</a>
+                    </Button>
                 </div>
-            )}
+            </div>
 
             <Footer />
         </main>

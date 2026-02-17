@@ -1,3 +1,5 @@
+export type UserRole = "customer" | "agent" | "admin";
+
 export interface Profile {
     id: string;
     name: string;
@@ -7,6 +9,7 @@ export interface Profile {
     bio: string | null;
     service_areas: string[];
     is_public: boolean;
+    role: UserRole;
     created_at: string;
     updated_at: string;
 }
@@ -108,4 +111,51 @@ export interface HouseholdItemPhoto {
     position: number;
     is_cover: boolean;
     created_at: string;
+}
+
+// ============ Visit Scheduling Types ============
+
+export interface AvailabilitySlot {
+    id: string;
+    property_id: string;
+    slot_date: string;
+    start_time: string;
+    end_time: string;
+    capacity: number;
+    is_available: boolean;
+    created_at: string;
+    updated_at: string;
+    // Joined
+    property?: Property;
+}
+
+export type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
+
+export interface Booking {
+    id: string;
+    property_id: string;
+    slot_id: string;
+    customer_name: string;
+    customer_phone: string;
+    customer_nationality: string | null;
+    customer_email: string | null;
+    status: BookingStatus;
+    idempotency_key: string | null;
+    created_at: string;
+    updated_at: string;
+    // Joined
+    property?: Property;
+    availability_slot?: AvailabilitySlot;
+}
+
+export interface AuditLog {
+    id: string;
+    actor_id: string | null;
+    action: string;
+    entity_type: string;
+    entity_id: string | null;
+    metadata: Record<string, unknown>;
+    created_at: string;
+    // Joined
+    actor?: Profile;
 }

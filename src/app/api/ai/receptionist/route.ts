@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
         // Rate limiting
         const clientIp = request.headers.get("x-forwarded-for") || "unknown";
-        const rateLimit = checkRateLimit(clientIp, AI_RATE_LIMITS.receptionist);
+        const rateLimit = await checkRateLimit(clientIp, AI_RATE_LIMITS.receptionist);
         if (!rateLimit.allowed) {
             return NextResponse.json(
                 { message: "You're sending messages too quickly. Please wait a moment.", intent: "rate_limited", listings: [], filters: {} },

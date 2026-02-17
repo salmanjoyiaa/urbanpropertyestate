@@ -50,6 +50,22 @@ export async function createAvailabilitySlot(input: CreateSlotInput) {
             return { success: false, error: "End time must be after start time" };
         }
 
+        // Check if the date falls within a property_block (unavailable range)
+        const { data: conflicts } = await supabase
+            .from("property_blocks")
+            .select("id")
+            .eq("property_id", input.propertyId)
+            .lte("start_date", input.slotDate)
+            .gte("end_date", input.slotDate)
+            .limit(1);
+
+        if (conflicts && conflicts.length > 0) {
+            return {
+                success: false,
+                error: "This date is blocked as unavailable. Remove the block first before adding availability.",
+            };
+        }
+
         const { data, error } = await supabase
             .from("availability_slots")
             .insert({
@@ -107,8 +123,27 @@ export async function bulkCreateSlots(input: BulkCreateSlotsInput) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
+        // Get all blocked date ranges for this property to filter out conflicting slots
+        const { data: blocks } = await supabase
+            .from("property_blocks")
+            .select("start_date, end_date")
+            .eq("property_id", input.propertyId);
+
+        const blockedRanges = (blocks || []).map((b) => ({
+            start: new Date(b.start_date),
+            end: new Date(b.end_date),
+        }));
+
+        const isDateBlocked = (dateStr: string): boolean => {
+            const d = new Date(dateStr);
+            return blockedRanges.some((r) => d >= r.start && d <= r.end);
+        };
+
         const slotsToInsert = input.slots
-            .filter((s) => new Date(s.slotDate) >= today && s.startTime < s.endTime)
+            .filter((s) => {
+                const slotDate = new Date(s.slotDate);
+                return slotDate >= today && s.startTime < s.endTime && !isDateBlocked(s.slotDate);
+            })
             .map((s) => ({
                 property_id: input.propertyId,
                 slot_date: s.slotDate,

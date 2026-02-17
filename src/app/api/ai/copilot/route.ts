@@ -18,7 +18,7 @@ const MARKET_LANGUAGES: Record<string, string[]> = {
 export async function POST(request: NextRequest) {
     try {
         // Rate limiting
-        const rateLimitResponse = applyRateLimit(request, "copilot");
+        const rateLimitResponse = await applyRateLimit(request, "copilot");
         if (rateLimitResponse) return rateLimitResponse;
 
         const body: CopilotRequest = await request.json();

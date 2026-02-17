@@ -22,10 +22,10 @@ export async function requireAuth() {
 /**
  * Apply rate limiting. Returns null if allowed, or a 429 response.
  */
-export function applyRateLimit(request: NextRequest, configKey: keyof typeof AI_RATE_LIMITS) {
+export async function applyRateLimit(request: NextRequest, configKey: keyof typeof AI_RATE_LIMITS) {
     const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     const config = AI_RATE_LIMITS[configKey] || AI_RATE_LIMITS.general;
-    const result = checkRateLimit(clientIp, config);
+    const result = await checkRateLimit(clientIp, config);
 
     if (!result.allowed) {
         return NextResponse.json(

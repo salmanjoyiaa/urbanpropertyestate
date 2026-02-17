@@ -7,7 +7,7 @@ import type { ListingSummary } from "@/lib/ai/types";
 export async function POST(request: NextRequest) {
     try {
         // Rate limiting
-        const rateLimitResponse = applyRateLimit(request, "general");
+        const rateLimitResponse = await applyRateLimit(request, "general");
         if (rateLimitResponse) return rateLimitResponse;
 
         const { description, price, currency } = await request.json();

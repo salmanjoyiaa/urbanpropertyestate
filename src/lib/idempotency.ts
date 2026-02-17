@@ -1,18 +1,15 @@
+import { createHash } from "crypto";
+
 export function generateIdempotencyKey(
     propertyId: string,
     slotId: string,
     customerPhone: string,
     ip: string
 ): string {
-    // Create a deterministic key from the booking parameters
-    // This ensures the same customer can't double-book the same slot
+    // Create a deterministic key from the booking parameters.
+    // Same inputs always produce the same key, so client retries are
+    // correctly deduplicated via the DB UNIQUE constraint.
     const raw = `${propertyId}:${slotId}:${customerPhone}:${ip}`;
-    // Simple hash - in production you might use crypto.subtle
-    let hash = 0;
-    for (let i = 0; i < raw.length; i++) {
-        const char = raw.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash |= 0; // Convert to 32bit integer
-    }
-    return `bk_${Math.abs(hash).toString(36)}_${Date.now().toString(36)}`;
+    const hash = createHash("sha256").update(raw).digest("hex").slice(0, 32);
+    return `bk_${hash}`;
 }

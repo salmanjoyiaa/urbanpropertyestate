@@ -30,7 +30,7 @@ export async function createBooking(input: CreateBookingInput) {
         const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
         // 3. Rate limiting (5 bookings per 15 minutes per IP)
-        const rateLimitResult = checkRateLimit(ip, {
+        const rateLimitResult = await checkRateLimit(ip, {
             maxRequests: 5,
             windowMs: 15 * 60 * 1000,
             identifier: "booking_create",

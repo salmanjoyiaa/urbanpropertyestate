@@ -6,7 +6,7 @@ const VOICE_MODEL = "aura-2-thalia-en";
 
 export async function POST(req: NextRequest) {
     const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
-    const rateLimit = checkRateLimit(clientIp, AI_RATE_LIMITS.general || { maxRequests: 20, windowMs: 60000 });
+    const rateLimit = await checkRateLimit(clientIp, AI_RATE_LIMITS.general || { maxRequests: 20, windowMs: 60000 });
     if (!rateLimit.allowed) {
         return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
     }

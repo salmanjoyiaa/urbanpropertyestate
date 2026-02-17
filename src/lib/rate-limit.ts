@@ -1,22 +1,8 @@
-// Simple in-memory rate limiter for API routes
-// For production, use Redis-based rate limiting
+// Serverless-safe rate limiter backed by Supabase RPC (atomic DB counters).
+// The `check_rate_limit` RPC uses SELECT ... FOR UPDATE to prevent race
+// conditions across concurrent requests, and state persists between cold starts.
 
-interface RateLimitEntry {
-    count: number;
-    resetAt: number;
-}
-
-const rateLimitStore = new Map<string, RateLimitEntry>();
-
-// Clean up old entries every 5 minutes
-if (typeof setInterval !== "undefined") {
-    setInterval(() => {
-        const now = Date.now();
-        rateLimitStore.forEach((entry, key) => {
-            if (entry.resetAt < now) rateLimitStore.delete(key);
-        });
-    }, 5 * 60 * 1000);
-}
+import { createClient } from "@/lib/supabase/server";
 
 export interface RateLimitConfig {
     maxRequests: number;      // Max requests per window
@@ -30,26 +16,43 @@ export interface RateLimitResult {
     resetAt: number;
 }
 
-export function checkRateLimit(
+/**
+ * Atomic, serverless-safe rate limit check via Supabase RPC.
+ * Falls back to allowing the request if the DB call fails
+ * (fail-open to avoid blocking legitimate traffic).
+ */
+export async function checkRateLimit(
     clientIp: string,
     config: RateLimitConfig
-): RateLimitResult {
-    const key = `${config.identifier || "default"}:${clientIp}`;
-    const now = Date.now();
-    const entry = rateLimitStore.get(key);
+): Promise<RateLimitResult> {
+    const windowSeconds = Math.ceil(config.windowMs / 1000);
+    const identifier = `${config.identifier || "default"}:${clientIp}`;
 
-    if (!entry || entry.resetAt < now) {
-        // New window
-        rateLimitStore.set(key, { count: 1, resetAt: now + config.windowMs });
-        return { allowed: true, remaining: config.maxRequests - 1, resetAt: now + config.windowMs };
+    try {
+        const supabase = createClient();
+        const { data, error } = await supabase.rpc("check_rate_limit", {
+            p_identifier: identifier,
+            p_action: config.identifier || "default",
+            p_max_requests: config.maxRequests,
+            p_window_seconds: windowSeconds,
+        });
+
+        if (error) {
+            console.error("Rate limit RPC error:", error);
+            // Fail open — don't block legitimate users if DB is unreachable
+            return { allowed: true, remaining: config.maxRequests, resetAt: Date.now() + config.windowMs };
+        }
+
+        const allowed = data === true;
+        return {
+            allowed,
+            remaining: allowed ? Math.max(0, config.maxRequests - 1) : 0,
+            resetAt: Date.now() + config.windowMs,
+        };
+    } catch (err) {
+        console.error("Rate limit error:", err);
+        return { allowed: true, remaining: config.maxRequests, resetAt: Date.now() + config.windowMs };
     }
-
-    if (entry.count >= config.maxRequests) {
-        return { allowed: false, remaining: 0, resetAt: entry.resetAt };
-    }
-
-    entry.count++;
-    return { allowed: true, remaining: config.maxRequests - entry.count, resetAt: entry.resetAt };
 }
 
 // Sanitize user input to prevent XSS and injection

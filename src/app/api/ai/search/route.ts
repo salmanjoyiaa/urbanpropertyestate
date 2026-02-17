@@ -13,7 +13,7 @@ import type { Property } from "@/lib/types";
 export async function POST(request: NextRequest) {
     try {
         // Rate limiting
-        const rateLimitResponse = applyRateLimit(request, "search");
+        const rateLimitResponse = await applyRateLimit(request, "search");
         if (rateLimitResponse) return rateLimitResponse;
 
         const { query } = await request.json();

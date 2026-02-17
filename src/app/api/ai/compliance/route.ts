@@ -8,7 +8,7 @@ import type { ComplianceCheck } from "@/lib/ai/types";
 export async function POST(request: NextRequest) {
     try {
         // Rate limiting
-        const rateLimitResponse = applyRateLimit(request, "general");
+        const rateLimitResponse = await applyRateLimit(request, "general");
         if (rateLimitResponse) return rateLimitResponse;
 
         const { text, mode } = await request.json();

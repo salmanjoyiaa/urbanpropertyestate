@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 
         // Rate limiting
         const clientIp = request.headers.get("x-forwarded-for") || "unknown";
-        const rateLimit = checkRateLimit(clientIp, AI_RATE_LIMITS.leads);
+        const rateLimit = await checkRateLimit(clientIp, AI_RATE_LIMITS.leads);
         if (!rateLimit.allowed) {
             return NextResponse.json({ error: "Too many requests" }, { status: 429 });
         }

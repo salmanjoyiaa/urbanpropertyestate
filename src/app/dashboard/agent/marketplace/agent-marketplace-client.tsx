@@ -17,13 +17,21 @@ import {
     DollarSign,
     MapPin,
     Loader2,
+    Upload,
+    X,
+    Star,
+    ImagePlus,
 } from "lucide-react";
 import {
     createMarketplaceItem,
     updateMarketplaceItem,
     deleteMarketplaceItem,
     getAgentMarketplaceItems,
+    addItemPhoto,
+    deleteItemPhoto,
+    setItemCoverPhoto,
 } from "@/actions/marketplace-items";
+import { createClient } from "@/lib/supabase/client";
 import type { HouseholdItemCategory, ItemCondition } from "@/lib/types";
 
 const CATEGORIES: { value: HouseholdItemCategory; label: string }[] = [
@@ -113,6 +121,13 @@ export default function AgentMarketplaceClient() {
     // Form state
     const [form, setForm] = useState<FormState>(defaultForm);
 
+    // Photo state
+    const [newFiles, setNewFiles] = useState<File[]>([]);
+    const [existingPhotos, setExistingPhotos] = useState<
+        { id: string; url: string; is_cover: boolean }[]
+    >([]);
+    const [uploadingPhotos, setUploadingPhotos] = useState(false);
+
     const fetchItems = useCallback(async () => {
         setLoading(true);
         const result = await getAgentMarketplaceItems();
@@ -129,6 +144,8 @@ export default function AgentMarketplaceClient() {
     function openCreateDialog() {
         setEditingItem(null);
         setForm(defaultForm);
+        setNewFiles([]);
+        setExistingPhotos([]);
         setError("");
         setDialogOpen(true);
     }
@@ -147,6 +164,8 @@ export default function AgentMarketplaceClient() {
             deliveryAvailable: item.delivery_available,
             isNegotiable: item.is_negotiable,
         });
+        setNewFiles([]);
+        setExistingPhotos(item.household_item_photos || []);
         setError("");
         setDialogOpen(true);
     }
@@ -154,6 +173,80 @@ export default function AgentMarketplaceClient() {
     function openDeleteDialog(item: MarketplaceItem) {
         setDeletingItem(item);
         setDeleteDialogOpen(true);
+    }
+
+    function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+        const files = Array.from(e.target.files || []);
+        const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+        const valid: File[] = [];
+        const rejected: string[] = [];
+        for (const f of files) {
+            if (f.size > MAX_SIZE) {
+                rejected.push(f.name);
+            } else {
+                valid.push(f);
+            }
+        }
+        if (rejected.length > 0) {
+            setError(`Files too large (max 5 MB): ${rejected.join(", ")}`);
+        }
+        setNewFiles((prev) => [...prev, ...valid]);
+    }
+
+    function removeNewFile(index: number) {
+        setNewFiles((prev) => prev.filter((_, i) => i !== index));
+    }
+
+    async function handleRemoveExistingPhoto(photoId: string) {
+        if (!editingItem) return;
+        const result = await deleteItemPhoto(photoId, editingItem.id);
+        if (result.success) {
+            setExistingPhotos((prev) => prev.filter((p) => p.id !== photoId));
+        }
+    }
+
+    async function handleSetCover(photoId: string) {
+        if (!editingItem) return;
+        const result = await setItemCoverPhoto(photoId, editingItem.id);
+        if (result.success) {
+            setExistingPhotos((prev) =>
+                prev.map((p) => ({ ...p, is_cover: p.id === photoId }))
+            );
+        }
+    }
+
+    async function uploadPhotosForItem(itemId: string) {
+        if (newFiles.length === 0) return;
+        setUploadingPhotos(true);
+
+        const supabase = createClient();
+        const {
+            data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const startPosition = existingPhotos.length;
+
+        for (let i = 0; i < newFiles.length; i++) {
+            const file = newFiles[i];
+            const fileName = `${Date.now()}-${file.name}`;
+            const path = `items/${user.id}/${itemId}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from("household-items")
+                .upload(path, file);
+
+            if (uploadError) continue;
+
+            const {
+                data: { publicUrl },
+            } = supabase.storage.from("household-items").getPublicUrl(path);
+
+            const isCover = existingPhotos.length === 0 && i === 0;
+            await addItemPhoto(itemId, publicUrl, startPosition + i, isCover);
+        }
+
+        setUploadingPhotos(false);
     }
 
     async function handleSubmit(e: React.FormEvent) {
@@ -175,10 +268,18 @@ export default function AgentMarketplaceClient() {
         };
 
         let result;
+        let targetItemId = editingItem?.id;
         if (editingItem) {
             result = await updateMarketplaceItem({ itemId: editingItem.id, ...payload });
         } else {
             result = await createMarketplaceItem(payload);
+            if (result.success && "itemId" in result) {
+                targetItemId = result.itemId as string;
+            }
+        }
+
+        if (result.success && targetItemId && newFiles.length > 0) {
+            await uploadPhotosForItem(targetItemId);
         }
 
         if (result.success) {
@@ -470,6 +571,113 @@ export default function AgentMarketplaceClient() {
                             </label>
                         </div>
 
+                        {/* Photos Section */}
+                        <div className="space-y-3">
+                            <Label className="flex items-center gap-2">
+                                <ImagePlus className="h-4 w-4" />
+                                Photos
+                            </Label>
+
+                            {/* Existing photos (edit mode) */}
+                            {existingPhotos.length > 0 && (
+                                <div className="grid grid-cols-3 gap-2">
+                                    {existingPhotos.map((photo) => (
+                                        <div
+                                            key={photo.id}
+                                            className={`relative aspect-square rounded-lg overflow-hidden border-2 ${
+                                                photo.is_cover
+                                                    ? "border-primary ring-2 ring-primary/20"
+                                                    : "border-transparent"
+                                            }`}
+                                        >
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={photo.url}
+                                                alt="Item photo"
+                                                className="w-full h-full object-cover"
+                                            />
+                                            {photo.is_cover && (
+                                                <div className="absolute top-1 left-1">
+                                                    <Badge className="bg-primary text-[10px] px-1 py-0">
+                                                        <Star className="h-2.5 w-2.5 mr-0.5" />
+                                                        Cover
+                                                    </Badge>
+                                                </div>
+                                            )}
+                                            <div className="absolute top-1 right-1 flex gap-1">
+                                                {!photo.is_cover && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleSetCover(photo.id)}
+                                                        className="bg-black/60 hover:bg-black/80 text-white rounded-full p-1"
+                                                        title="Set as cover"
+                                                    >
+                                                        <Star className="h-3 w-3" />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveExistingPhoto(photo.id)}
+                                                    className="bg-destructive/80 hover:bg-destructive text-white rounded-full p-1"
+                                                    title="Delete photo"
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* New file previews */}
+                            {newFiles.length > 0 && (
+                                <div className="grid grid-cols-3 gap-2">
+                                    {newFiles.map((file, i) => (
+                                        <div
+                                            key={i}
+                                            className="relative aspect-square rounded-lg overflow-hidden bg-muted"
+                                        >
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={URL.createObjectURL(file)}
+                                                alt="New upload preview"
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => removeNewFile(i)}
+                                                className="absolute top-1 right-1 bg-destructive/80 hover:bg-destructive text-white rounded-full p-1"
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Upload button */}
+                            <label className="flex flex-col items-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors">
+                                <Upload className="h-6 w-6 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">
+                                    Click to upload photos (max 5 MB each)
+                                </span>
+                                <input
+                                    type="file"
+                                    multiple
+                                    accept="image/*"
+                                    onChange={handleFileSelect}
+                                    className="hidden"
+                                />
+                            </label>
+
+                            {uploadingPhotos && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Uploading photos...
+                                </div>
+                            )}
+                        </div>
+
                         <div className="flex gap-3 pt-2">
                             <Button
                                 type="button"
@@ -479,7 +687,7 @@ export default function AgentMarketplaceClient() {
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" className="flex-1" disabled={saving}>
+                            <Button type="submit" className="flex-1" disabled={saving || uploadingPhotos}>
                                 {saving ? (
                                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                                 ) : null}

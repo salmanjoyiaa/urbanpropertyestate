@@ -290,3 +290,153 @@ export async function getAgentMarketplaceItems() {
         };
     }
 }
+
+export async function addItemPhoto(itemId: string, url: string, position: number, isCover: boolean) {
+    try {
+        if (!validateUUID(itemId)) {
+            return { success: false, error: "Invalid item ID" };
+        }
+
+        const { user, role } = await requireAgentOrAdmin();
+        const adminClient = createAdminClient();
+
+        // Verify ownership
+        const { data: item, error: fetchError } = await adminClient
+            .from("household_items")
+            .select("id, agent_id")
+            .eq("id", itemId)
+            .single();
+
+        if (fetchError || !item) {
+            return { success: false, error: "Item not found" };
+        }
+
+        if (role !== "admin" && item.agent_id !== user.id) {
+            return { success: false, error: "You can only add photos to your own items" };
+        }
+
+        // If this is set as cover, unset existing covers first
+        if (isCover) {
+            await adminClient
+                .from("household_item_photos")
+                .update({ is_cover: false })
+                .eq("item_id", itemId);
+        }
+
+        const { data, error } = await adminClient
+            .from("household_item_photos")
+            .insert({
+                item_id: itemId,
+                url,
+                position,
+                is_cover: isCover,
+            })
+            .select("id")
+            .single();
+
+        if (error) throw error;
+
+        revalidatePath("/dashboard/agent/marketplace");
+        revalidatePath("/marketplace");
+        return { success: true, photoId: data.id };
+    } catch (error) {
+        console.error("Add item photo error:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to add photo",
+        };
+    }
+}
+
+export async function deleteItemPhoto(photoId: string, itemId: string) {
+    try {
+        if (!validateUUID(photoId) || !validateUUID(itemId)) {
+            return { success: false, error: "Invalid ID" };
+        }
+
+        const { user, role } = await requireAgentOrAdmin();
+        const adminClient = createAdminClient();
+
+        // Verify ownership
+        const { data: item, error: fetchError } = await adminClient
+            .from("household_items")
+            .select("id, agent_id")
+            .eq("id", itemId)
+            .single();
+
+        if (fetchError || !item) {
+            return { success: false, error: "Item not found" };
+        }
+
+        if (role !== "admin" && item.agent_id !== user.id) {
+            return { success: false, error: "You can only delete photos from your own items" };
+        }
+
+        const { error } = await adminClient
+            .from("household_item_photos")
+            .delete()
+            .eq("id", photoId);
+
+        if (error) throw error;
+
+        revalidatePath("/dashboard/agent/marketplace");
+        revalidatePath("/marketplace");
+        return { success: true };
+    } catch (error) {
+        console.error("Delete item photo error:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to delete photo",
+        };
+    }
+}
+
+export async function setItemCoverPhoto(photoId: string, itemId: string) {
+    try {
+        if (!validateUUID(photoId) || !validateUUID(itemId)) {
+            return { success: false, error: "Invalid ID" };
+        }
+
+        const { user, role } = await requireAgentOrAdmin();
+        const adminClient = createAdminClient();
+
+        // Verify ownership
+        const { data: item, error: fetchError } = await adminClient
+            .from("household_items")
+            .select("id, agent_id")
+            .eq("id", itemId)
+            .single();
+
+        if (fetchError || !item) {
+            return { success: false, error: "Item not found" };
+        }
+
+        if (role !== "admin" && item.agent_id !== user.id) {
+            return { success: false, error: "You can only edit your own items" };
+        }
+
+        // Unset all covers
+        await adminClient
+            .from("household_item_photos")
+            .update({ is_cover: false })
+            .eq("item_id", itemId);
+
+        // Set new cover
+        const { error } = await adminClient
+            .from("household_item_photos")
+            .update({ is_cover: true })
+            .eq("id", photoId);
+
+        if (error) throw error;
+
+        revalidatePath("/dashboard/agent/marketplace");
+        revalidatePath("/marketplace");
+        return { success: true };
+    } catch (error) {
+        console.error("Set cover photo error:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to set cover photo",
+        };
+    }
+}

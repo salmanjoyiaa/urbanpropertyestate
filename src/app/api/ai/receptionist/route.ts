@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
             try {
                 let query = supabase
                     .from("household_items")
-                    .select("id, title, city, area, price, currency, category, condition, seller_id, household_item_photos(url, is_cover), seller:profiles(name, whatsapp_number)")
+                    .select("id, title, city, area, price, currency, category, condition, seller_id, household_item_photos(url, is_cover), seller:profiles!seller_id(name, whatsapp_number)")
                     .eq("status", "available");
 
                 const f = aiResponse.filters;

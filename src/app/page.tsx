@@ -42,7 +42,7 @@ export default async function HomePage() {
         const adminClient = createAdminClient();
         const { data: itemData } = await adminClient
             .from("household_items")
-            .select("*, seller:profiles(*), household_item_photos(*)")
+            .select("*, seller:profiles!seller_id(*), household_item_photos(*)")
             .eq("status", "available")
             .order("created_at", { ascending: false })
             .limit(8);

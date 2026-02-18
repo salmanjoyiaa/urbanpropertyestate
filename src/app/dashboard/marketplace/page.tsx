@@ -17,7 +17,7 @@ export default async function MarketplaceDashboardPage() {
 
     const { data } = await supabase
         .from("household_items")
-        .select("*, seller:profiles(name), household_item_photos(id, url, is_cover)")
+        .select("*, seller:profiles!seller_id(name), household_item_photos(id, url, is_cover)")
         .order("created_at", { ascending: false });
 
     items = (data as HouseholdItem[]) || [];

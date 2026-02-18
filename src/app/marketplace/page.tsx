@@ -56,7 +56,7 @@ async function ItemGrid({ searchParams }: Props) {
         const supabase = createAdminClient();
         let query = supabase
             .from("household_items")
-            .select("*, seller:profiles(*), household_item_photos(*)", { count: "exact" })
+            .select("*, seller:profiles!seller_id(*), household_item_photos(*)", { count: "exact" })
             .eq("status", "available");
 
         const category = searchParams.category as string;

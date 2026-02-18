@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogBody, DialogHeader } from "@/components/ui/dialog";
 import { createBooking } from "@/actions/bookings";
 import type { AvailabilitySlot } from "@/lib/types";
 
@@ -32,6 +33,7 @@ export default function BookingForm({
     propertyTitle,
     slots,
 }: BookingFormProps) {
+    const [open, setOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
     const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -56,7 +58,6 @@ export default function BookingForm({
             }
             grouped[slot.slot_date].push(slot);
         }
-        // Sort dates
         return Object.fromEntries(
             Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b))
         );
@@ -119,7 +120,7 @@ export default function BookingForm({
             customerName: name,
             customerPhone: phone,
             customerNationality: nationality || undefined,
-            customerEmail: email || undefined,
+            customerEmail: email,
             honeypot: honeypot || undefined,
         });
 
@@ -127,242 +128,287 @@ export default function BookingForm({
         setLoading(false);
     }
 
-    if (result?.success) {
-        return (
-            <div className="rounded-2xl border p-6 text-center space-y-4">
-                <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
-                <h3 className="font-display text-xl font-semibold">Visit Request Submitted!</h3>
-                <p className="text-muted-foreground text-sm">
-                    {result.message || "You will receive a confirmation email once your visit is approved."}
-                </p>
-                {selectedSlot && (
-                    <div className="bg-secondary/50 rounded-lg p-4 text-sm">
-                        <p className="font-medium">{propertyTitle}</p>
-                        <p className="text-muted-foreground">
-                            {formatDate(selectedSlot.slot_date)} at{" "}
-                            {formatTime(selectedSlot.start_time)} -{" "}
-                            {formatTime(selectedSlot.end_time)}
-                        </p>
-                    </div>
-                )}
-            </div>
-        );
+    function handleClose() {
+        if (!loading) {
+            setOpen(false);
+            if (result?.success) {
+                setResult(null);
+                setSelectedDate(null);
+                setSelectedSlotId(null);
+                setName("");
+                setPhone("");
+                setNationality("");
+                setEmail("");
+            }
+        }
     }
 
     return (
-        <div className="rounded-2xl border p-6 space-y-6">
-            <div>
-                <h3 className="font-display text-lg font-semibold flex items-center gap-2">
-                    <CalendarDays className="h-5 w-5 text-primary" />
-                    Schedule a Visit
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                    Select a date and time to request a visit
-                </p>
-            </div>
+        <>
+            {/* Trigger Button */}
+            <Button
+                type="button"
+                size="lg"
+                className="w-full"
+                onClick={() => setOpen(true)}
+            >
+                <CalendarDays className="h-5 w-5 mr-2" />
+                Schedule a Visit
+            </Button>
 
-            {/* Date Selection */}
-            <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Select Date</Label>
-                    <div className="flex items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
-                            className="px-2 py-1 rounded-md border text-xs hover:bg-secondary"
-                        >
-                            Prev
-                        </button>
-                        <span className="text-sm font-medium">
-                            {format(currentMonth, "MMMM yyyy")}
-                        </span>
-                        <button
-                            type="button"
-                            onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
-                            className="px-2 py-1 rounded-md border text-xs hover:bg-secondary"
-                        >
-                            Next
-                        </button>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-7 gap-2 text-xs text-muted-foreground">
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                        <div key={day} className="text-center">
-                            {day}
-                        </div>
-                    ))}
-                </div>
-
-                <div className="grid grid-cols-7 gap-2">
-                    {calendarDays.map((day) => {
-                        const dateStr = format(day, "yyyy-MM-dd");
-                        const isAvailable = availableDateSet.has(dateStr);
-                        const isSelected = selectedDate === dateStr;
-                        const isToday = isSameDay(day, new Date());
-
-                        return (
-                            <button
-                                key={dateStr}
-                                type="button"
-                                onClick={() => {
-                                    if (!isAvailable) return;
-                                    setSelectedDate(dateStr);
-                                    setSelectedSlotId(null);
-                                }}
-                                className={`h-10 rounded-lg border text-sm transition-colors ${
-                                    !isSameMonth(day, currentMonth)
-                                        ? "text-muted-foreground/40 border-border"
-                                        : isSelected
-                                        ? "bg-primary text-primary-foreground border-primary"
-                                        : isAvailable
-                                        ? "hover:bg-secondary/80 border-border"
-                                        : "text-muted-foreground border-border"
-                                } ${isToday ? "ring-1 ring-primary/40" : ""}`}
-                                disabled={!isAvailable}
-                            >
-                                {format(day, "d")}
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {availableDates.length === 0 && (
-                    <p className="text-xs text-muted-foreground">
-                        No visit slots are available yet. Please check back later.
-                    </p>
-                )}
-            </div>
-
-            {/* Time Slot Selection */}
-            {selectedDate && (
-                <div className="space-y-2">
-                    <Label className="text-sm font-medium">Select Time</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                        {slotsForSelectedDate.map((slot) => (
-                            <button
-                                key={slot.id}
-                                type="button"
-                                onClick={() => setSelectedSlotId(slot.id)}
-                                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm border transition-colors ${
-                                    selectedSlotId === slot.id
-                                        ? "bg-primary text-primary-foreground border-primary"
-                                        : "hover:bg-secondary/80 border-border"
-                                }`}
-                            >
-                                <Clock className="h-3.5 w-3.5" />
-                                {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Booking Form */}
-            {selectedSlotId && (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="bg-secondary/50 rounded-lg p-3 flex items-center gap-2">
-                        <Badge variant="secondary" className="shrink-0">
-                            Selected
-                        </Badge>
-                        <span className="text-sm">
-                            {selectedDate && formatDate(selectedDate)},{" "}
-                            {selectedSlot && (
-                                <>
-                                    {formatTime(selectedSlot.start_time)} -{" "}
-                                    {formatTime(selectedSlot.end_time)}
-                                </>
+            <Dialog open={open} onOpenChange={handleClose}>
+                {result?.success ? (
+                    <>
+                        <DialogHeader onClose={handleClose}>
+                            <span />
+                        </DialogHeader>
+                        <DialogBody className="text-center space-y-4 pt-2">
+                            <CheckCircle2 className="h-14 w-14 text-emerald-500 mx-auto" />
+                            <h3 className="font-display text-xl font-semibold">Visit Request Submitted!</h3>
+                            <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+                                {result.message || "You will receive a confirmation email once your visit is approved."}
+                            </p>
+                            {selectedSlot && selectedDate && (
+                                <div className="bg-secondary/50 rounded-lg p-4 text-sm">
+                                    <p className="font-medium">{propertyTitle}</p>
+                                    <p className="text-muted-foreground">
+                                        {formatDate(selectedDate)} at{" "}
+                                        {formatTime(selectedSlot.start_time)} -{" "}
+                                        {formatTime(selectedSlot.end_time)}
+                                    </p>
+                                </div>
                             )}
-                        </span>
-                    </div>
+                            <Button onClick={handleClose} variant="secondary" className="mt-2">
+                                Close
+                            </Button>
+                        </DialogBody>
+                    </>
+                ) : (
+                    <>
+                        <DialogHeader onClose={handleClose}>
+                            <div>
+                                <h3 className="font-display text-lg font-semibold flex items-center gap-2">
+                                    <CalendarDays className="h-5 w-5 text-primary" />
+                                    Schedule a Visit
+                                </h3>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    {propertyTitle}
+                                </p>
+                            </div>
+                        </DialogHeader>
+                        <DialogBody className="space-y-5">
+                            {/* Calendar */}
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-sm font-medium">Select Date</Label>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
+                                            className="px-2 py-1 rounded-md border text-xs hover:bg-secondary transition-colors"
+                                        >
+                                            Prev
+                                        </button>
+                                        <span className="text-sm font-medium min-w-[120px] text-center">
+                                            {format(currentMonth, "MMMM yyyy")}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
+                                            className="px-2 py-1 rounded-md border text-xs hover:bg-secondary transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
 
-                    <div className="space-y-3">
-                        <div>
-                            <Label htmlFor="name">Full Name *</Label>
-                            <Input
-                                id="name"
-                                required
-                                minLength={2}
-                                maxLength={100}
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder="Enter your full name"
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="phone">Phone Number *</Label>
-                            <Input
-                                id="phone"
-                                type="tel"
-                                required
-                                minLength={7}
-                                maxLength={20}
-                                value={phone}
-                                onChange={(e) => setPhone(e.target.value)}
-                                placeholder="+971 50 123 4567"
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="nationality">Nationality</Label>
-                            <Input
-                                id="nationality"
-                                value={nationality}
-                                onChange={(e) => setNationality(e.target.value)}
-                                placeholder="e.g. Indian, British"
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="email">Email (optional)</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="your@email.com"
-                            />
-                        </div>
-                    </div>
+                                <div className="grid grid-cols-7 gap-1 text-xs text-muted-foreground">
+                                    {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
+                                        <div key={d} className="text-center font-medium py-1">
+                                            {d}
+                                        </div>
+                                    ))}
+                                </div>
 
-                    {/* Honeypot - hidden from real users */}
-                    <div className="absolute -left-[9999px]" aria-hidden="true">
-                        <input
-                            type="text"
-                            name="website"
-                            tabIndex={-1}
-                            autoComplete="off"
-                            value={honeypot}
-                            onChange={(e) => setHoneypot(e.target.value)}
-                        />
-                    </div>
+                                <div className="grid grid-cols-7 gap-1">
+                                    {calendarDays.map((day) => {
+                                        const dateStr = format(day, "yyyy-MM-dd");
+                                        const isAvailable = availableDateSet.has(dateStr);
+                                        const isSelected = selectedDate === dateStr;
+                                        const isToday = isSameDay(day, new Date());
+                                        const inMonth = isSameMonth(day, currentMonth);
 
-                    {result?.error && (
-                        <p className="text-sm text-red-500">{result.error}</p>
-                    )}
+                                        return (
+                                            <button
+                                                key={dateStr}
+                                                type="button"
+                                                onClick={() => {
+                                                    if (!isAvailable) return;
+                                                    setSelectedDate(dateStr);
+                                                    setSelectedSlotId(null);
+                                                }}
+                                                className={`h-9 w-full rounded-lg text-sm transition-all ${
+                                                    !inMonth
+                                                        ? "text-muted-foreground/30"
+                                                        : isSelected
+                                                        ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                                                        : isAvailable
+                                                        ? "hover:bg-primary/10 text-foreground font-medium bg-emerald-50 dark:bg-emerald-950/20"
+                                                        : "text-muted-foreground/50"
+                                                } ${isToday && !isSelected ? "ring-1 ring-primary/40" : ""}`}
+                                                disabled={!isAvailable || !inMonth}
+                                            >
+                                                {format(day, "d")}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
 
-                    <Button
-                        type="submit"
-                        className="w-full"
-                        size="lg"
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Submitting...
-                            </>
-                        ) : (
-                            <>
-                                <CalendarDays className="h-4 w-4 mr-2" />
-                                Request Visit
-                            </>
-                        )}
-                    </Button>
+                                {availableDates.length === 0 && (
+                                    <p className="text-xs text-muted-foreground text-center py-2">
+                                        No visit slots available yet. Check back later.
+                                    </p>
+                                )}
+                            </div>
 
-                    <p className="text-xs text-muted-foreground text-center">
-                        You will receive a confirmation email after admin review
-                    </p>
-                </form>
-            )}
-        </div>
+                            {/* Time Slots */}
+                            {selectedDate && (
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium">
+                                        Available Times &mdash; {formatDate(selectedDate)}
+                                    </Label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {slotsForSelectedDate.map((slot) => (
+                                            <button
+                                                key={slot.id}
+                                                type="button"
+                                                onClick={() => setSelectedSlotId(slot.id)}
+                                                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm border transition-all ${
+                                                    selectedSlotId === slot.id
+                                                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                                        : "hover:bg-secondary/80 border-border hover:border-primary/30"
+                                                }`}
+                                            >
+                                                <Clock className="h-3.5 w-3.5" />
+                                                {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Form Fields */}
+                            {selectedSlotId && (
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <div className="bg-secondary/50 rounded-lg p-3 flex items-center gap-2">
+                                        <Badge variant="secondary" className="shrink-0">
+                                            Selected
+                                        </Badge>
+                                        <span className="text-sm">
+                                            {selectedDate && formatDate(selectedDate)},{" "}
+                                            {selectedSlot && (
+                                                <>
+                                                    {formatTime(selectedSlot.start_time)} -{" "}
+                                                    {formatTime(selectedSlot.end_time)}
+                                                </>
+                                            )}
+                                        </span>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div>
+                                            <Label htmlFor="name">Full Name *</Label>
+                                            <Input
+                                                id="name"
+                                                required
+                                                minLength={2}
+                                                maxLength={100}
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                placeholder="Enter your full name"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="phone">Phone Number *</Label>
+                                            <Input
+                                                id="phone"
+                                                type="tel"
+                                                required
+                                                minLength={7}
+                                                maxLength={20}
+                                                value={phone}
+                                                onChange={(e) => setPhone(e.target.value)}
+                                                placeholder="+971 50 123 4567"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="nationality">Nationality</Label>
+                                            <Input
+                                                id="nationality"
+                                                value={nationality}
+                                                onChange={(e) => setNationality(e.target.value)}
+                                                placeholder="e.g. Indian, British"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="email">Email *</Label>
+                                            <Input
+                                                id="email"
+                                                type="email"
+                                                required
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                placeholder="your@email.com"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Honeypot */}
+                                    <div className="absolute -left-[9999px]" aria-hidden="true">
+                                        <input
+                                            type="text"
+                                            name="website"
+                                            tabIndex={-1}
+                                            autoComplete="off"
+                                            value={honeypot}
+                                            onChange={(e) => setHoneypot(e.target.value)}
+                                        />
+                                    </div>
+
+                                    {result?.error && (
+                                        <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+                                            <p className="text-sm text-red-600">{result.error}</p>
+                                        </div>
+                                    )}
+
+                                    <Button
+                                        type="submit"
+                                        className="w-full"
+                                        size="lg"
+                                        disabled={loading}
+                                    >
+                                        {loading ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                Submitting...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <CalendarDays className="h-4 w-4 mr-2" />
+                                                Request Visit
+                                            </>
+                                        )}
+                                    </Button>
+
+                                    <p className="text-xs text-muted-foreground text-center">
+                                        You will receive a confirmation email after admin review
+                                    </p>
+                                </form>
+                            )}
+                        </DialogBody>
+                    </>
+                )}
+            </Dialog>
+        </>
     );
 }

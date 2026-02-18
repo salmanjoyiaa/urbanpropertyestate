@@ -109,7 +109,7 @@ export default function HouseholdItemCard({ item }: HouseholdItemCardProps) {
                     )}
                 </div>
 
-                <MarketplaceRequestForm itemId={item.id} />
+                <MarketplaceRequestForm itemId={item.id} itemTitle={item.title} />
             </div>
         </Card>
     );

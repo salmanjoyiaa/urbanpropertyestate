@@ -25,7 +25,7 @@ interface CreateMarketplaceRequestInput {
     itemId: string;
     customerName: string;
     customerPhone: string;
-    customerEmail?: string;
+    customerEmail: string;
     customerNote?: string;
     honeypot?: string;
     idempotencyKey?: string;
@@ -68,16 +68,17 @@ export async function createMarketplaceRequest(input: CreateMarketplaceRequestIn
         const phoneError = validatePhoneNumber(input.customerPhone);
         if (phoneError) return { success: false, error: phoneError };
 
-        if (input.customerEmail) {
-            const emailError = validateEmail(input.customerEmail);
-            if (emailError) return { success: false, error: emailError };
+        if (!input.customerEmail) {
+            return { success: false, error: "Email is required" };
         }
+        const emailError = validateEmail(input.customerEmail);
+        if (emailError) return { success: false, error: emailError };
 
         const headersList = headers();
         const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
         const rateLimitResult = await checkRateLimit(ip, {
-            maxRequests: 5,
+            maxRequests: 10,
             windowMs: 15 * 60 * 1000,
             identifier: "marketplace_request_create",
         });
@@ -89,7 +90,8 @@ export async function createMarketplaceRequest(input: CreateMarketplaceRequestIn
             };
         }
 
-        const supabase = createClient();
+        // Use admin client to bypass RLS for public marketplace submissions
+        const supabase = createAdminClient();
 
         const { data: item, error: itemError } = await supabase
             .from("household_items")
@@ -126,7 +128,7 @@ export async function createMarketplaceRequest(input: CreateMarketplaceRequestIn
                 seller_id: item.seller_id,
                 customer_name: sanitizeText(input.customerName.trim(), 100),
                 customer_phone: normalizePhone(input.customerPhone),
-                customer_email: input.customerEmail?.trim() || null,
+                customer_email: input.customerEmail.trim(),
                 customer_note: input.customerNote ? sanitizeText(input.customerNote, 1000) : null,
                 status: "pending",
                 idempotency_key: idempotencyKey,
@@ -153,7 +155,7 @@ export async function createMarketplaceRequest(input: CreateMarketplaceRequestIn
 
         await Promise.allSettled([
             sendMarketplaceReceivedEmail({
-                customerEmail: input.customerEmail || null,
+                customerEmail: input.customerEmail,
                 customerName: input.customerName.trim(),
                 itemTitle: item.title,
             }),
@@ -161,7 +163,7 @@ export async function createMarketplaceRequest(input: CreateMarketplaceRequestIn
                 itemTitle: item.title,
                 customerName: input.customerName.trim(),
                 customerPhone: normalizePhone(input.customerPhone),
-                customerEmail: input.customerEmail || null,
+                customerEmail: input.customerEmail,
             }),
         ]);
 

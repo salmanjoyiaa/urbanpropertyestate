@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { validateName, validatePhoneNumber, validateEmail, validateUUID, normalizePhone, sanitizeText } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { generateIdempotencyKey } from "@/lib/idempotency";
@@ -17,7 +18,7 @@ interface CreateBookingInput {
     customerName: string;
     customerPhone: string;
     customerNationality?: string;
-    customerEmail?: string;
+    customerEmail: string;
     honeypot?: string;
     idempotencyKey?: string;
 }
@@ -33,9 +34,9 @@ export async function createBooking(input: CreateBookingInput) {
         const headersList = headers();
         const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
-        // 3. Rate limiting (5 bookings per 15 minutes per IP)
+        // 3. Rate limiting (10 bookings per 15 minutes per IP)
         const rateLimitResult = await checkRateLimit(ip, {
-            maxRequests: 5,
+            maxRequests: 10,
             windowMs: 15 * 60 * 1000,
             identifier: "booking_create",
         });
@@ -54,10 +55,11 @@ export async function createBooking(input: CreateBookingInput) {
         const phoneError = validatePhoneNumber(input.customerPhone);
         if (phoneError) return { success: false, error: phoneError };
 
-        if (input.customerEmail) {
-            const emailError = validateEmail(input.customerEmail);
-            if (emailError) return { success: false, error: emailError };
+        if (!input.customerEmail) {
+            return { success: false, error: "Email is required" };
         }
+        const emailError = validateEmail(input.customerEmail);
+        if (emailError) return { success: false, error: emailError };
 
         if (!validateUUID(input.propertyId) || !validateUUID(input.slotId)) {
             return { success: false, error: "Invalid property or slot" };
@@ -68,7 +70,8 @@ export async function createBooking(input: CreateBookingInput) {
             input.idempotencyKey ||
             generateIdempotencyKey(input.propertyId, input.slotId, input.customerPhone, ip);
 
-        const supabase = createClient();
+        // Use admin client to bypass RLS for public booking submissions
+        const supabase = createAdminClient();
 
         // 6. Check idempotency (return existing if duplicate)
         const { data: existingBooking } = await supabase
@@ -124,7 +127,7 @@ export async function createBooking(input: CreateBookingInput) {
                 customer_nationality: input.customerNationality
                     ? sanitizeText(input.customerNationality.trim(), 100)
                     : null,
-                customer_email: input.customerEmail?.trim() || null,
+                customer_email: input.customerEmail.trim(),
                 idempotency_key: idempotencyKey,
                 status: "pending",
             })
@@ -157,7 +160,7 @@ export async function createBooking(input: CreateBookingInput) {
 
         await Promise.allSettled([
             sendVisitReceivedEmail({
-                customerEmail: input.customerEmail || null,
+                customerEmail: input.customerEmail,
                 customerName: input.customerName.trim(),
                 propertyTitle,
             }),
@@ -165,7 +168,7 @@ export async function createBooking(input: CreateBookingInput) {
                 propertyTitle,
                 customerName: input.customerName.trim(),
                 customerPhone: normalizePhone(input.customerPhone),
-                customerEmail: input.customerEmail || null,
+                customerEmail: input.customerEmail,
                 requestedDate: slotDetail?.slot_date || null,
                 requestedTime,
             }),

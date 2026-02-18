@@ -7,22 +7,20 @@ import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils";
 import type { HouseholdItem } from "@/lib/types";
+import { requireAdmin } from "@/lib/auth/guards";
 
 export default async function MarketplaceDashboardPage() {
+    await requireAdmin();
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
 
     let items: HouseholdItem[] = [];
 
-    if (user) {
-        const { data } = await supabase
-            .from("household_items")
-            .select("*, household_item_photos(id, url, is_cover)")
-            .eq("seller_id", user.id)
-            .order("created_at", { ascending: false });
+    const { data } = await supabase
+        .from("household_items")
+        .select("*, seller:profiles(name), household_item_photos(id, url, is_cover)")
+        .order("created_at", { ascending: false });
 
-        items = (data as HouseholdItem[]) || [];
-    }
+    items = (data as HouseholdItem[]) || [];
 
     const availableCount = items.filter((i) => i.status === "available").length;
     const soldCount = items.filter((i) => i.status === "sold").length;
@@ -32,8 +30,8 @@ export default async function MarketplaceDashboardPage() {
         <div className="space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="font-display text-3xl font-bold">My Marketplace</h1>
-                    <p className="text-muted-foreground mt-1">Manage your household items</p>
+                    <h1 className="font-display text-3xl font-bold">Marketplace Management</h1>
+                    <p className="text-muted-foreground mt-1">Manage marketplace inventory across the platform</p>
                 </div>
                 <Button asChild size="lg">
                     <Link href="/dashboard/marketplace/new">
@@ -77,7 +75,7 @@ export default async function MarketplaceDashboardPage() {
             {/* Items Table */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Your Items</CardTitle>
+                    <CardTitle>All Items</CardTitle>
                 </CardHeader>
                 <CardContent>
                     {items.length === 0 ? (
@@ -98,6 +96,7 @@ export default async function MarketplaceDashboardPage() {
                                     <tr className="border-b text-sm text-muted-foreground">
                                         <th className="text-left py-3 px-2">Item</th>
                                         <th className="text-left py-3 px-2">Category</th>
+                                        <th className="text-left py-3 px-2">Seller</th>
                                         <th className="text-left py-3 px-2">Price</th>
                                         <th className="text-left py-3 px-2">Status</th>
                                         <th className="text-right py-3 px-2">Actions</th>
@@ -124,6 +123,7 @@ export default async function MarketplaceDashboardPage() {
                                                     </div>
                                                 </td>
                                                 <td className="py-3 px-2 capitalize">{item.category}</td>
+                                                <td className="py-3 px-2 text-sm text-muted-foreground">{item.seller?.name || "-"}</td>
                                                 <td className="py-3 px-2 font-semibold">{formatCurrency(item.price, item.currency)}</td>
                                                 <td className="py-3 px-2">
                                                     <Badge variant={item.status === "available" ? "default" : item.status === "sold" ? "secondary" : "outline"}>

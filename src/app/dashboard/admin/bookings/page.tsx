@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/guards";
 import { Badge } from "@/components/ui/badge";
-import BookingActions from "../../agent/bookings/booking-actions";
+import RequestActions from "../leads/request-actions";
 
 const statusColors: Record<string, string> = {
     pending: "bg-amber-100 text-amber-800",
@@ -116,8 +116,9 @@ export default async function AdminBookingsPage() {
                                             </Badge>
                                         </td>
                                         <td className="p-4 text-right">
-                                            <BookingActions
-                                                bookingId={b.id}
+                                            <RequestActions
+                                                entity="booking"
+                                                id={b.id}
                                                 currentStatus={b.status}
                                             />
                                         </td>

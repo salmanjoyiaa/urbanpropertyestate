@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { validateUUID } from "@/lib/validation";
 import { logAudit } from "@/lib/audit";
+import { sendVisitApprovedEmail } from "@/lib/email";
 import { revalidatePath } from "next/cache";
 import type { UserRole } from "@/lib/types";
 
@@ -71,6 +72,28 @@ export async function adminUpdateBookingStatus(
         const admin = await requireAdminRole();
         const adminClient = createAdminClient();
 
+        const { data: booking, error: bookingError } = await adminClient
+            .from("bookings")
+            .select("id, property_id, customer_name, customer_phone, customer_email, customer_nationality, slot_id")
+            .eq("id", bookingId)
+            .single();
+
+        if (bookingError || !booking) {
+            return { success: false, error: "Booking not found" };
+        }
+
+        const { data: property } = await adminClient
+            .from("properties")
+            .select("title, agent_id")
+            .eq("id", booking.property_id)
+            .single();
+
+        const { data: slot } = await adminClient
+            .from("availability_slots")
+            .select("slot_date, start_time, end_time")
+            .eq("id", booking.slot_id)
+            .single();
+
         const { error } = await adminClient
             .from("bookings")
             .update({ status })
@@ -78,9 +101,36 @@ export async function adminUpdateBookingStatus(
 
         if (error) throw error;
 
-        await logAudit(admin.id, `admin_booking_${status}`, "bookings", bookingId, {});
+        await logAudit(admin.id, `admin_booking_${status}`, "bookings", bookingId, {
+            property_id: booking.property_id,
+        });
+
+        if (status === "confirmed" && property?.agent_id) {
+            await adminClient.from("leads").insert({
+                property_id: booking.property_id,
+                agent_id: property.agent_id,
+                contact_name: booking.customer_name,
+                contact_phone: booking.customer_phone,
+                contact_email: booking.customer_email,
+                message: `Approved visit request for ${property.title || "property"}.`,
+                source: "visit_approved",
+                temperature: "warm",
+                score: 60,
+                status: "new",
+                notes: booking.customer_nationality || null,
+            });
+
+            await sendVisitApprovedEmail({
+                customerEmail: booking.customer_email,
+                customerName: booking.customer_name,
+                propertyTitle: property.title || "Property",
+                requestedDate: slot?.slot_date || null,
+                requestedTime: slot ? `${slot.start_time} - ${slot.end_time}` : null,
+            });
+        }
 
         revalidatePath("/dashboard/admin/bookings");
+        revalidatePath("/dashboard/leads");
         return { success: true };
     } catch (error) {
         console.error("Admin booking update error:", error);

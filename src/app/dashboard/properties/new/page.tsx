@@ -1,5 +1,7 @@
 import PropertyForm from "@/components/property-form";
+import { requireRole } from "@/lib/auth/guards";
 
-export default function NewPropertyPage() {
+export default async function NewPropertyPage() {
+    await requireRole(["agent", "admin"]);
     return <PropertyForm />;
 }

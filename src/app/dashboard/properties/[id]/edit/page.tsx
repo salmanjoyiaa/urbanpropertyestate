@@ -15,12 +15,24 @@ export default async function EditPropertyPage({ params }: Props) {
 
     if (!user) redirect("/login");
 
-    const { data: property } = await supabase
+    const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+    const isAdmin = profile?.role === "admin";
+
+    const propertyQuery = supabase
         .from("properties")
         .select("*")
-        .eq("id", params.id)
-        .eq("agent_id", user.id)
-        .single();
+        .eq("id", params.id);
+
+    if (!isAdmin) {
+        propertyQuery.eq("agent_id", user.id);
+    }
+
+    const { data: property } = await propertyQuery.single();
 
     if (!property) notFound();
 

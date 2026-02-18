@@ -1,19 +1,17 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import HouseholdItemForm from "@/components/household-item-form";
 import type { HouseholdItem, HouseholdItemPhoto } from "@/lib/types";
+import { requireAdmin } from "@/lib/auth/guards";
 
 export default async function EditItemPage({ params }: { params: { id: string } }) {
+    await requireAdmin();
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) redirect("/login");
 
     const { data: item } = await supabase
         .from("household_items")
         .select("*")
         .eq("id", params.id)
-        .eq("seller_id", user.id)
         .single();
 
     if (!item) notFound();

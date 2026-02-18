@@ -98,7 +98,7 @@ export default function BookingForm({
                 <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
                 <h3 className="font-display text-xl font-semibold">Visit Request Submitted!</h3>
                 <p className="text-muted-foreground text-sm">
-                    {result.message}
+                    {result.message || "You will receive a confirmation email once your visit is approved."}
                 </p>
                 {selectedSlot && (
                     <div className="bg-secondary/50 rounded-lg p-4 text-sm">
@@ -287,7 +287,7 @@ export default function BookingForm({
                     </Button>
 
                     <p className="text-xs text-muted-foreground text-center">
-                        Your contact details are only shared with the property manager
+                        You will receive a confirmation email after admin review
                     </p>
                 </form>
             )}

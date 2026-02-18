@@ -1,8 +1,6 @@
 import Link from "next/link";
 import {
     Building2,
-    CalendarDays,
-    ClipboardList,
     Plus,
     Eye,
 } from "lucide-react";
@@ -24,27 +22,6 @@ export default async function AgentDashboardPage() {
         .eq("agent_id", user.id)
         .order("created_at", { ascending: false });
 
-    // Fetch booking stats
-    const { count: pendingBookings } = await supabase
-        .from("bookings")
-        .select("id", { count: "exact", head: true })
-        .in("property_id", (properties || []).map((p) => p.id))
-        .eq("status", "pending");
-
-    const { count: totalBookings } = await supabase
-        .from("bookings")
-        .select("id", { count: "exact", head: true })
-        .in("property_id", (properties || []).map((p) => p.id));
-
-    // Fetch upcoming slots count
-    const today = new Date().toISOString().split("T")[0];
-    const { count: upcomingSlots } = await supabase
-        .from("availability_slots")
-        .select("id", { count: "exact", head: true })
-        .in("property_id", (properties || []).map((p) => p.id))
-        .gte("slot_date", today)
-        .eq("is_available", true);
-
     const publishedCount = (properties || []).filter((p) => p.status === "published").length;
     const draftCount = (properties || []).filter((p) => p.status === "draft").length;
 
@@ -54,7 +31,7 @@ export default async function AgentDashboardPage() {
                 <div>
                     <h1 className="font-display text-3xl font-bold">Agent Dashboard</h1>
                     <p className="text-muted-foreground mt-1">
-                        Manage your listings, availability, and bookings
+                        Manage your listings and review approved visit leads
                     </p>
                 </div>
                 <Button asChild>
@@ -66,7 +43,7 @@ export default async function AgentDashboardPage() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-4 max-w-md">
                 <div className="rounded-xl border bg-background p-4">
                     <div className="flex items-center gap-2 text-muted-foreground mb-2">
                         <Building2 className="h-4 w-4" />
@@ -76,27 +53,6 @@ export default async function AgentDashboardPage() {
                     {draftCount > 0 && (
                         <p className="text-xs text-muted-foreground">{draftCount} drafts</p>
                     )}
-                </div>
-                <div className="rounded-xl border bg-background p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                        <CalendarDays className="h-4 w-4" />
-                        <span className="text-sm">Open Slots</span>
-                    </div>
-                    <div className="text-2xl font-bold">{upcomingSlots || 0}</div>
-                </div>
-                <div className="rounded-xl border bg-background p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                        <ClipboardList className="h-4 w-4" />
-                        <span className="text-sm">Pending</span>
-                    </div>
-                    <div className="text-2xl font-bold text-amber-500">{pendingBookings || 0}</div>
-                </div>
-                <div className="rounded-xl border bg-background p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                        <ClipboardList className="h-4 w-4" />
-                        <span className="text-sm">Total Bookings</span>
-                    </div>
-                    <div className="text-2xl font-bold">{totalBookings || 0}</div>
                 </div>
             </div>
 

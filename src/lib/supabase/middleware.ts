@@ -69,10 +69,30 @@ export async function updateSession(request: NextRequest) {
             return NextResponse.redirect(url);
         }
 
+        // Agents can only access New Property, property edit, and Leads pages
+        if (role === "agent") {
+            const allowedAgentRoutes = [
+                "/dashboard",
+                "/dashboard/agent",
+                "/dashboard/leads",
+                "/dashboard/properties/new",
+            ];
+
+            const isAllowedAgentRoute =
+                allowedAgentRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`)) ||
+                pathname.startsWith("/dashboard/properties/");
+
+            if (!isAllowedAgentRoute) {
+                const url = request.nextUrl.clone();
+                url.pathname = "/dashboard/leads";
+                return NextResponse.redirect(url);
+            }
+        }
+
         // Redirect base /dashboard to role-specific dashboard
         if (pathname === "/dashboard" || pathname === "/dashboard/") {
             const url = request.nextUrl.clone();
-            url.pathname = role === "admin" ? "/dashboard/admin" : "/dashboard/agent";
+            url.pathname = role === "admin" ? "/dashboard/admin" : "/dashboard/leads";
             return NextResponse.redirect(url);
         }
     }

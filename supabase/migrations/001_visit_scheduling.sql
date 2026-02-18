@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============ STEP 1: ADD ROLE COLUMN TO EXISTING PROFILES TABLE ============
 ALTER TABLE profiles
-ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'customer'
+ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'agent'
 CHECK (role IN ('customer', 'agent', 'admin'));
 
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);

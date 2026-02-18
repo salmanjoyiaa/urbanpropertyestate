@@ -7,9 +7,7 @@ import {
     LogOut,
     User,
     Users,
-    BarChart3,
     ShoppingBag,
-    CalendarDays,
     ClipboardList,
     Shield,
     FileText,
@@ -48,19 +46,16 @@ export default async function DashboardLayout({
     const isAdmin = role === "admin";
 
     const agentNavItems = [
-        { href: "/dashboard/agent", icon: LayoutDashboard, label: "Dashboard", shortLabel: "Home" },
         { href: "/dashboard/properties/new", icon: Plus, label: "New Property", shortLabel: "New" },
-        { href: "/dashboard/agent/availability", icon: CalendarDays, label: "Availability", shortLabel: "Slots" },
-        { href: "/dashboard/agent/bookings", icon: ClipboardList, label: "Bookings", shortLabel: "Bookings" },
         { href: "/dashboard/leads", icon: Users, label: "Leads", shortLabel: "Leads" },
-        { href: "/dashboard/analytics", icon: BarChart3, label: "Analytics", shortLabel: "Stats" },
-        { href: "/dashboard/marketplace", icon: ShoppingBag, label: "Marketplace", shortLabel: "Market" },
-        { href: "/dashboard/profile", icon: User, label: "Profile", shortLabel: "Profile" },
     ];
 
     const adminNavItems = [
         { href: "/dashboard/admin", icon: LayoutDashboard, label: "Overview", shortLabel: "Home" },
+        { href: "/dashboard/admin/leads", icon: Users, label: "Leads", shortLabel: "Leads" },
         { href: "/dashboard/admin/properties", icon: Building2, label: "Properties", shortLabel: "Props" },
+        { href: "/dashboard/properties/new", icon: Plus, label: "Add Property", shortLabel: "Add" },
+        { href: "/dashboard/marketplace", icon: ShoppingBag, label: "Marketplace", shortLabel: "Market" },
         { href: "/dashboard/admin/bookings", icon: ClipboardList, label: "Bookings", shortLabel: "Books" },
         { href: "/dashboard/admin/agents", icon: Users, label: "Agents", shortLabel: "Agents" },
         { href: "/dashboard/admin/audit-logs", icon: FileText, label: "Audit Logs", shortLabel: "Logs" },

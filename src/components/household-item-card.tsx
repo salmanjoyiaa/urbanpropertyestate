@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { MapPin, Tag, Truck, MessageCircle } from "lucide-react";
+import { MapPin, Tag, Truck } from "lucide-react";
+import MarketplaceRequestForm from "@/components/marketplace-request-form";
 import type { HouseholdItem } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 
@@ -41,12 +41,6 @@ export default function HouseholdItemCard({ item }: HouseholdItemCardProps) {
     const conditionInfo = CONDITION_LABELS[item.condition] || CONDITION_LABELS.good;
     const categoryEmoji = CATEGORY_EMOJI[item.category] || "📎";
     const hasValidImage = coverPhoto && !imgError;
-
-    const FALLBACK_WHATSAPP = "+923177779990";
-    const whatsappNumber = item.seller?.whatsapp_number || FALLBACK_WHATSAPP;
-    const whatsappMessage = encodeURIComponent(
-        `Hi, I'm interested in your "${item.title}" listed for ${formatCurrency(item.price, item.currency)} on UrbanEstate. Is it still available?`
-    );
 
     return (
         <Card className={`group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${!hasValidImage ? 'order-last' : ''}`}>
@@ -115,16 +109,7 @@ export default function HouseholdItemCard({ item }: HouseholdItemCardProps) {
                     )}
                 </div>
 
-                {/* Contact CTA — always visible (fallback to platform WhatsApp) */}
-                <a
-                    href={`https://wa.me/${whatsappNumber}?text=${whatsappMessage}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full mt-2 py-2 rounded-lg bg-[#25d366] text-white text-sm font-medium hover:bg-[#20bd5a] transition-colors"
-                >
-                    <MessageCircle className="h-4 w-4" />
-                    Chat on WhatsApp
-                </a>
+                <MarketplaceRequestForm itemId={item.id} />
             </div>
         </Card>
     );

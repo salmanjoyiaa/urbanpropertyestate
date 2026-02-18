@@ -4,10 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import LeadStatusSelect from "@/components/lead-status-select";
 import {
     Users, Flame, ThermometerSun, Snowflake, Phone, Mail,
-    MessageSquare, Calendar, ArrowLeft, ExternalLink, Eye
+    Calendar, ArrowLeft, ExternalLink
 } from "lucide-react";
 
 const TEMP_CONFIG = {
@@ -33,6 +32,7 @@ export default async function LeadsPage() {
         .from("leads")
         .select("*, property:properties(title, city)")
         .eq("agent_id", user.id)
+        .eq("source", "visit_approved")
         .order("created_at", { ascending: false });
 
     const allLeads = leads || [];
@@ -47,7 +47,7 @@ export default async function LeadsPage() {
                 <div>
                     <h1 className="font-display text-2xl font-bold">Lead Tracker</h1>
                     <p className="text-muted-foreground text-sm mt-1">
-                        {allLeads.length} total leads · {newCount} new
+                        {allLeads.length} approved visit leads · {newCount} new
                     </p>
                 </div>
                 <Button asChild variant="outline" size="sm">
@@ -121,7 +121,7 @@ export default async function LeadsPage() {
                         <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
                         <h3 className="font-semibold text-lg mb-1">No leads yet</h3>
                         <p className="text-muted-foreground text-sm">
-                            Leads will appear here when potential tenants contact you
+                            Visit leads appear here after admin approval
                         </p>
                     </CardContent>
                 </Card>
@@ -150,10 +150,6 @@ export default async function LeadsPage() {
                                                 <Badge className={`text-xs ${status.color}`}>
                                                     {status.label}
                                                 </Badge>
-                                                <LeadStatusSelect
-                                                    leadId={lead.id}
-                                                    currentStatus={lead.status}
-                                                />
                                                 {lead.score && (
                                                     <span className="text-xs text-muted-foreground">
                                                         Score: {lead.score}/100
@@ -209,18 +205,6 @@ export default async function LeadsPage() {
                                             </div>
                                         </div>
 
-                                        {/* Actions */}
-                                        {lead.contact_phone && (
-                                            <a
-                                                href={`https://wa.me/${lead.contact_phone.replace(/[^0-9]/g, "")}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-medium hover:bg-green-700 transition-colors"
-                                            >
-                                                <MessageSquare className="h-3.5 w-3.5" />
-                                                WhatsApp
-                                            </a>
-                                        )}
                                     </div>
                                 </CardContent>
                             </Card>

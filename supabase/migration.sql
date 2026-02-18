@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   bio TEXT,
   service_areas TEXT[] DEFAULT '{}',
   is_public BOOLEAN DEFAULT true,
+  role TEXT NOT NULL DEFAULT 'agent' CHECK (role IN ('customer', 'agent', 'admin')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -21,8 +22,12 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, name)
-  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)));
+  INSERT INTO public.profiles (id, name, role)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+    'agent'
+  );
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

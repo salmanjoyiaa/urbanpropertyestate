@@ -113,6 +113,28 @@ export interface HouseholdItemPhoto {
     created_at: string;
 }
 
+export type MarketplaceRequestStatus = "pending" | "approved" | "rejected";
+
+export interface MarketplaceRequest {
+    id: string;
+    item_id: string;
+    seller_id: string;
+    customer_name: string;
+    customer_phone: string;
+    customer_email: string | null;
+    customer_note: string | null;
+    status: MarketplaceRequestStatus;
+    idempotency_key: string | null;
+    admin_actor_id: string | null;
+    admin_decision_note: string | null;
+    approved_at: string | null;
+    rejected_at: string | null;
+    created_at: string;
+    updated_at: string;
+    item?: HouseholdItem;
+    seller?: Profile;
+}
+
 // ============ Visit Scheduling Types ============
 
 export interface AvailabilitySlot {

@@ -5,6 +5,10 @@ import { validateName, validatePhoneNumber, validateEmail, validateUUID, normali
 import { checkRateLimit } from "@/lib/rate-limit";
 import { generateIdempotencyKey } from "@/lib/idempotency";
 import { logAudit } from "@/lib/audit";
+import {
+    sendAdminNewVisitRequestEmail,
+    sendVisitReceivedEmail,
+} from "@/lib/email";
 import { headers } from "next/headers";
 
 interface CreateBookingInput {
@@ -96,7 +100,20 @@ export async function createBooking(input: CreateBookingInput) {
             return { success: false, error: "Invalid property/slot combination" };
         }
 
-        // 8. Create booking atomically
+        // 8. Fetch context for notifications
+        const { data: property } = await supabase
+            .from("properties")
+            .select("title")
+            .eq("id", input.propertyId)
+            .single();
+
+        const { data: slotDetail } = await supabase
+            .from("availability_slots")
+            .select("slot_date, start_time, end_time")
+            .eq("id", input.slotId)
+            .single();
+
+        // 9. Create booking atomically
         const { data: booking, error: bookingError } = await supabase
             .from("bookings")
             .insert({
@@ -124,7 +141,7 @@ export async function createBooking(input: CreateBookingInput) {
             throw bookingError;
         }
 
-        // 9. Log audit
+        // 10. Log audit
         await logAudit(null, "booking_created", "bookings", booking.id, {
             customer_phone: normalizePhone(input.customerPhone),
             ip_address: ip,
@@ -132,9 +149,31 @@ export async function createBooking(input: CreateBookingInput) {
             slot_id: input.slotId,
         });
 
+        // 11. Email notifications (non-blocking)
+        const propertyTitle = property?.title || "Property";
+        const requestedTime = slotDetail
+            ? `${slotDetail.start_time} - ${slotDetail.end_time}`
+            : null;
+
+        await Promise.allSettled([
+            sendVisitReceivedEmail({
+                customerEmail: input.customerEmail || null,
+                customerName: input.customerName.trim(),
+                propertyTitle,
+            }),
+            sendAdminNewVisitRequestEmail({
+                propertyTitle,
+                customerName: input.customerName.trim(),
+                customerPhone: normalizePhone(input.customerPhone),
+                customerEmail: input.customerEmail || null,
+                requestedDate: slotDetail?.slot_date || null,
+                requestedTime,
+            }),
+        ]);
+
         return {
             success: true,
-            message: "Visit request submitted! You will be contacted to confirm.",
+            message: "You will receive a confirmation email once your visit is approved.",
             bookingId: booking.id,
         };
     } catch (error) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useState } from "react";
@@ -15,6 +15,7 @@ export default function DeletePropertyButton({
     const [loading, setLoading] = useState(false);
 
     const handleDelete = async () => {
+        if (loading) return;
         if (!confirm("Are you sure you want to delete this property?")) return;
 
         setLoading(true);
@@ -37,7 +38,11 @@ export default function DeletePropertyButton({
             disabled={loading}
             className="text-destructive hover:text-destructive"
         >
-            <Trash2 className="h-4 w-4" />
+            {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+                <Trash2 className="h-4 w-4" />
+            )}
         </Button>
     );
 }

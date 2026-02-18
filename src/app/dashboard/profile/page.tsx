@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { User, Phone, MessageCircle, MapPin, FileText, Save, Check } from "lucide-react";
+import { User, Phone, MessageCircle, MapPin, FileText, Save, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -262,7 +262,10 @@ export default function ProfilePage() {
 
             <Button onClick={handleSave} disabled={saving} size="lg" className="w-full sm:w-auto">
                 {saving ? (
-                    "Saving..."
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                    </>
                 ) : (
                     <>
                         <Save className="mr-2 h-4 w-4" />

@@ -30,7 +30,9 @@ export default function AvailabilityManager({ properties, initialSlots }: Props)
         properties[0]?.id || ""
     );
     const [slots, setSlots] = useState<AvailabilitySlot[]>(initialSlots);
-    const [loading, setLoading] = useState(false);
+    const [addingSlot, setAddingSlot] = useState(false);
+    const [deletingSlotId, setDeletingSlotId] = useState<string | null>(null);
+    const [bulkCreating, setBulkCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Form state for new slot
@@ -46,6 +48,7 @@ export default function AvailabilityManager({ properties, initialSlots }: Props)
     const [slotDuration, setSlotDuration] = useState(60); // minutes
     const [showBulk, setShowBulk] = useState(false);
 
+    const isAnyLoading = addingSlot || deletingSlotId !== null || bulkCreating;
     const filteredSlots = slots.filter((s) => s.property_id === selectedPropertyId);
     const today = new Date().toISOString().split("T")[0];
 
@@ -68,9 +71,9 @@ export default function AvailabilityManager({ properties, initialSlots }: Props)
 
     async function handleAddSlot(e: React.FormEvent) {
         e.preventDefault();
-        if (!selectedPropertyId || !slotDate) return;
+        if (!selectedPropertyId || !slotDate || addingSlot) return;
 
-        setLoading(true);
+        setAddingSlot(true);
         setError(null);
 
         const result = await createAvailabilitySlot({
@@ -99,25 +102,26 @@ export default function AvailabilityManager({ properties, initialSlots }: Props)
         } else {
             setError(result.error || "Failed to create slot");
         }
-        setLoading(false);
+        setAddingSlot(false);
     }
 
     async function handleDeleteSlot(slotId: string) {
-        setLoading(true);
+        if (deletingSlotId) return;
+        setDeletingSlotId(slotId);
         const result = await deleteAvailabilitySlot(slotId);
         if (result.success) {
             setSlots((prev) => prev.filter((s) => s.id !== slotId));
         } else {
             setError(result.error || "Failed to delete slot");
         }
-        setLoading(false);
+        setDeletingSlotId(null);
     }
 
     async function handleBulkCreate(e: React.FormEvent) {
         e.preventDefault();
-        if (!selectedPropertyId || !bulkStartDate || !bulkEndDate) return;
+        if (!selectedPropertyId || !bulkStartDate || !bulkEndDate || bulkCreating) return;
 
-        setLoading(true);
+        setBulkCreating(true);
         setError(null);
 
         // Generate slots from date range
@@ -160,7 +164,7 @@ export default function AvailabilityManager({ properties, initialSlots }: Props)
         } else {
             setError(result.error || "Failed to create slots");
         }
-        setLoading(false);
+        setBulkCreating(false);
     }
 
     if (properties.length === 0) {
@@ -236,13 +240,13 @@ export default function AvailabilityManager({ properties, initialSlots }: Props)
                                 />
                             </div>
                         </div>
-                        <Button type="submit" disabled={loading} className="w-full">
-                            {loading ? (
+                        <Button type="submit" disabled={addingSlot || isAnyLoading} className="w-full">
+                            {addingSlot ? (
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                             ) : (
                                 <Plus className="h-4 w-4 mr-2" />
                             )}
-                            Add Slot
+                            {addingSlot ? "Adding..." : "Add Slot"}
                         </Button>
                     </form>
 
@@ -316,13 +320,13 @@ export default function AvailabilityManager({ properties, initialSlots }: Props)
                                     <option value={120}>2 hours</option>
                                 </select>
                             </div>
-                            <Button type="submit" disabled={loading} className="w-full">
-                                {loading ? (
+                            <Button type="submit" disabled={bulkCreating || isAnyLoading} className="w-full">
+                                {bulkCreating ? (
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                 ) : (
                                     <CalendarDays className="h-4 w-4 mr-2" />
                                 )}
-                                Generate Slots
+                                {bulkCreating ? "Generating..." : "Generate Slots"}
                             </Button>
                         </form>
                     )}
@@ -366,9 +370,13 @@ export default function AvailabilityManager({ properties, initialSlots }: Props)
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => handleDeleteSlot(slot.id)}
-                                            disabled={loading}
+                                            disabled={deletingSlotId === slot.id || isAnyLoading}
                                         >
-                                            <Trash2 className="h-4 w-4 text-red-500" />
+                                            {deletingSlotId === slot.id ? (
+                                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                            ) : (
+                                                <Trash2 className="h-4 w-4 text-red-500" />
+                                            )}
                                         </Button>
                                     )}
                                 </div>

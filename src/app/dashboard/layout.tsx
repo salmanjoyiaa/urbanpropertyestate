@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/lib/types";
+import DashboardNav from "./dashboard-nav";
 
 export default async function DashboardLayout({
     children,
@@ -81,20 +82,14 @@ export default async function DashboardLayout({
                             </span>
                         </Link>
 
-                        <nav className="hidden md:flex items-center gap-1">
-                            {navItems.map((item) => (
-                                <Button key={item.href} asChild variant="ghost" size="sm">
-                                    <Link href={item.href}>
-                                        <item.icon className="h-4 w-4 mr-2" />
-                                        {item.label}
-                                    </Link>
-                                </Button>
-                            ))}
-                        </nav>
+                        <DashboardNav items={navItems} mobileItems={mobileNavItems} />
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Link
+                            href="/dashboard/profile"
+                            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
                             {isAdmin && (
                                 <Badge variant="destructive" className="text-xs">
                                     <Shield className="h-3 w-3 mr-1" />
@@ -105,7 +100,7 @@ export default async function DashboardLayout({
                             <span className="hidden sm:inline">
                                 {profile?.name || user.email}
                             </span>
-                        </div>
+                        </Link>
                         <form action="/auth/signout" method="POST">
                             <Button variant="ghost" size="icon" title="Sign out" type="submit">
                                 <LogOut className="h-4 w-4" />
@@ -114,22 +109,6 @@ export default async function DashboardLayout({
                     </div>
                 </div>
             </header>
-
-            {/* Mobile bottom nav */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t z-50">
-                <div className="flex items-center justify-around py-2">
-                    {mobileNavItems.map((item) => (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className="flex flex-col items-center gap-1 text-xs text-muted-foreground hover:text-foreground p-2"
-                        >
-                            <item.icon className="h-5 w-5" />
-                            {item.shortLabel}
-                        </Link>
-                    ))}
-                </div>
-            </div>
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">

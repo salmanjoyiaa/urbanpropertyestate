@@ -19,6 +19,7 @@ import {
     Plus,
     Trash2,
     CalendarDays,
+    Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -146,6 +147,7 @@ export default function PropertyForm({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (loading) return;
         setLoading(true);
         setError("");
 
@@ -294,15 +296,31 @@ export default function PropertyForm({
                         onClick={() => setStatus("draft")}
                         variant="outline"
                     >
-                        Save Draft
+                        {loading && status === "draft" ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Saving...
+                            </>
+                        ) : (
+                            "Save Draft"
+                        )}
                     </Button>
                     <Button
                         type="submit"
                         disabled={loading}
                         onClick={() => setStatus("published")}
                     >
-                        <Save className="mr-2 h-4 w-4" />
-                        Publish
+                        {loading && status === "published" ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Publishing...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="mr-2 h-4 w-4" />
+                                Publish
+                            </>
+                        )}
                     </Button>
                 </div>
             </div>

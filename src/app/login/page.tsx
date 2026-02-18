@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Building2, Mail, Lock, ArrowRight, Sparkles } from "lucide-react";
+import { Building2, Mail, Lock, ArrowRight, Sparkles, Loader2, User, Phone, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,13 +13,23 @@ export default function LoginPage() {
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [name, setName] = useState("");
+    const [phone, setPhone] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [mode, setMode] = useState<"signin" | "signup" | "magic" | "forgot">("signin");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
 
+    const switchMode = (newMode: "signin" | "signup" | "magic" | "forgot") => {
+        setMode(newMode);
+        setError("");
+        setMessage("");
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (loading) return;
         setLoading(true);
         setError("");
         setMessage("");
@@ -44,10 +54,25 @@ export default function LoginPage() {
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
-                    options: { emailRedirectTo: `${location.origin}/auth/callback` },
+                    options: {
+                        emailRedirectTo: `${location.origin}/auth/callback`,
+                        data: {
+                            name: name.trim(),
+                            phone: phone.trim(),
+                        },
+                    },
                 });
                 if (error) throw error;
-                setMessage("Check your email to confirm your account!");
+                setMessage("Account created! Check your email to confirm, then sign in.");
+                // Auto-switch to signin after 2 seconds with cleared fields
+                setTimeout(() => {
+                    setEmail("");
+                    setPassword("");
+                    setName("");
+                    setPhone("");
+                    setMessage("");
+                    setMode("signin");
+                }, 2500);
             } else {
                 const { error } = await supabase.auth.signInWithPassword({
                     email,
@@ -111,7 +136,7 @@ export default function LoginPage() {
                         </h1>
                         <p className="text-muted-foreground mt-2">
                             {mode === "signup"
-                                ? "Sign up as a property agent"
+                                ? "Sign up to start managing properties"
                                 : mode === "magic"
                                     ? "Sign in with a magic link"
                                     : mode === "forgot"
@@ -120,7 +145,28 @@ export default function LoginPage() {
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* Name field - signup only */}
+                        {mode === "signup" && (
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Full Name</Label>
+                                <div className="relative">
+                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        id="name"
+                                        type="text"
+                                        placeholder="John Doe"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        className="pl-10"
+                                        required
+                                        minLength={2}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Email field */}
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
                             <div className="relative">
@@ -137,6 +183,7 @@ export default function LoginPage() {
                             </div>
                         </div>
 
+                        {/* Password field */}
                         {mode !== "magic" && mode !== "forgot" && (
                             <div className="space-y-2">
                                 <Label htmlFor="password">Password</Label>
@@ -144,13 +191,50 @@ export default function LoginPage() {
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                     <Input
                                         id="password"
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         placeholder="••••••••"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="pl-10"
+                                        className="pl-10 pr-10"
                                         required
                                         minLength={6}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4" />
+                                        ) : (
+                                            <Eye className="h-4 w-4" />
+                                        )}
+                                    </button>
+                                </div>
+                                {mode === "signup" && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Must be at least 6 characters
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Phone field - signup only */}
+                        {mode === "signup" && (
+                            <div className="space-y-2">
+                                <Label htmlFor="phone">
+                                    Phone Number <span className="text-muted-foreground text-xs">(optional)</span>
+                                </Label>
+                                <div className="relative">
+                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        id="phone"
+                                        type="tel"
+                                        placeholder="+923001234567"
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
+                                        className="pl-10"
                                     />
                                 </div>
                             </div>
@@ -170,7 +254,10 @@ export default function LoginPage() {
 
                         <Button type="submit" size="lg" className="w-full" disabled={loading}>
                             {loading ? (
-                                "Loading..."
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    {mode === "signup" ? "Creating Account..." : mode === "forgot" ? "Sending..." : mode === "magic" ? "Sending..." : "Signing In..."}
+                                </>
                             ) : mode === "forgot" ? (
                                 <>
                                     <Mail className="mr-2 h-4 w-4" />
@@ -199,13 +286,13 @@ export default function LoginPage() {
                         {mode === "signin" && (
                             <>
                                 <button
-                                    onClick={() => setMode("forgot")}
+                                    onClick={() => switchMode("forgot")}
                                     className="text-primary hover:underline block mx-auto"
                                 >
                                     Forgot password?
                                 </button>
                                 <button
-                                    onClick={() => setMode("magic")}
+                                    onClick={() => switchMode("magic")}
                                     className="text-primary hover:underline block mx-auto"
                                 >
                                     Sign in with Magic Link
@@ -213,8 +300,8 @@ export default function LoginPage() {
                                 <p className="text-muted-foreground">
                                     Don&apos;t have an account?{" "}
                                     <button
-                                        onClick={() => setMode("signup")}
-                                        className="text-primary hover:underline"
+                                        onClick={() => switchMode("signup")}
+                                        className="text-primary font-medium hover:underline"
                                     >
                                         Sign up
                                     </button>
@@ -225,8 +312,8 @@ export default function LoginPage() {
                             <p className="text-muted-foreground">
                                 Already have an account?{" "}
                                 <button
-                                    onClick={() => setMode("signin")}
-                                    className="text-primary hover:underline"
+                                    onClick={() => switchMode("signin")}
+                                    className="text-primary font-medium hover:underline"
                                 >
                                     Sign in
                                 </button>
@@ -234,7 +321,7 @@ export default function LoginPage() {
                         )}
                         {mode === "magic" && (
                             <button
-                                onClick={() => setMode("signin")}
+                                onClick={() => switchMode("signin")}
                                 className="text-primary hover:underline"
                             >
                                 Back to password sign in
@@ -242,7 +329,7 @@ export default function LoginPage() {
                         )}
                         {mode === "forgot" && (
                             <button
-                                onClick={() => setMode("signin")}
+                                onClick={() => switchMode("signin")}
                                 className="text-primary hover:underline"
                             >
                                 Back to sign in

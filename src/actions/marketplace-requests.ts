@@ -95,7 +95,7 @@ export async function createMarketplaceRequest(input: CreateMarketplaceRequestIn
 
         const { data: item, error: itemError } = await supabase
             .from("household_items")
-            .select("id, title, seller_id, status")
+            .select("id, title, seller_id, agent_id, status")
             .eq("id", input.itemId)
             .single();
 
@@ -103,9 +103,12 @@ export async function createMarketplaceRequest(input: CreateMarketplaceRequestIn
             return { success: false, error: "This item is no longer available" };
         }
 
+        // Resolve agent_id: prefer explicit agent_id, fallback to seller_id
+        const resolvedAgentId = item.agent_id || item.seller_id;
+
         const idempotencyKey =
             input.idempotencyKey ||
-            generateIdempotencyKey(item.id, item.seller_id, normalizePhone(input.customerPhone), ip);
+            generateIdempotencyKey(item.id, resolvedAgentId, normalizePhone(input.customerPhone), ip);
 
         const { data: existingRequest } = await supabase
             .from("marketplace_requests")
@@ -126,6 +129,7 @@ export async function createMarketplaceRequest(input: CreateMarketplaceRequestIn
             .insert({
                 item_id: item.id,
                 seller_id: item.seller_id,
+                agent_id: resolvedAgentId,
                 customer_name: sanitizeText(input.customerName.trim(), 100),
                 customer_phone: normalizePhone(input.customerPhone),
                 customer_email: input.customerEmail.trim(),
@@ -149,6 +153,7 @@ export async function createMarketplaceRequest(input: CreateMarketplaceRequestIn
         await logAudit(null, "marketplace_request_created", "marketplace_requests", created.id, {
             item_id: item.id,
             seller_id: item.seller_id,
+            agent_id: resolvedAgentId,
             customer_phone: normalizePhone(input.customerPhone),
             ip_address: ip,
         });
@@ -193,7 +198,7 @@ export async function adminUpdateMarketplaceRequestStatus(
 
         const { data: request, error: requestError } = await adminClient
             .from("marketplace_requests")
-            .select("id, item_id, seller_id, customer_name, customer_phone, customer_email")
+            .select("id, item_id, seller_id, agent_id, customer_name, customer_phone, customer_email")
             .eq("id", requestId)
             .single();
 
@@ -203,9 +208,12 @@ export async function adminUpdateMarketplaceRequestStatus(
 
         const { data: item } = await adminClient
             .from("household_items")
-            .select("title")
+            .select("title, agent_id")
             .eq("id", request.item_id)
             .single();
+
+        // Resolve agent_id: request.agent_id > item.agent_id > request.seller_id
+        const resolvedAgentId = request.agent_id || item?.agent_id || request.seller_id;
 
         const updatePayload: Record<string, unknown> = {
             status,
@@ -229,12 +237,13 @@ export async function adminUpdateMarketplaceRequestStatus(
         await logAudit(admin.id, `marketplace_request_${status}`, "marketplace_requests", requestId, {
             item_id: request.item_id,
             seller_id: request.seller_id,
+            agent_id: resolvedAgentId,
         });
 
         if (status === "approved") {
             await adminClient.from("leads").insert({
                 property_id: null,
-                agent_id: request.seller_id,
+                agent_id: resolvedAgentId,
                 contact_name: request.customer_name,
                 contact_phone: request.customer_phone,
                 contact_email: request.customer_email,

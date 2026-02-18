@@ -77,6 +77,7 @@ export async function updateSession(request: NextRequest) {
                 "/dashboard/leads",
                 "/dashboard/properties/new",
                 "/dashboard/agent/availability",
+                "/dashboard/agent/marketplace",
             ];
 
             const isAllowedAgentRoute =

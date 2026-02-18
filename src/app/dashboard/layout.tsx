@@ -50,6 +50,7 @@ export default async function DashboardLayout({
         { href: "/dashboard", icon: LayoutDashboard, label: "Properties", shortLabel: "Props" },
         { href: "/dashboard/properties/new", icon: Plus, label: "New Property", shortLabel: "New" },
         { href: "/dashboard/agent/availability", icon: CalendarDays, label: "Availability", shortLabel: "Slots" },
+        { href: "/dashboard/agent/marketplace", icon: ShoppingBag, label: "Marketplace", shortLabel: "Market" },
         { href: "/dashboard/leads", icon: Users, label: "Leads", shortLabel: "Leads" },
     ];
 

@@ -69,13 +69,14 @@ export async function updateSession(request: NextRequest) {
             return NextResponse.redirect(url);
         }
 
-        // Agents can only access New Property, property edit, and Leads pages
+        // Agents can only access their property dashboard, availability, and leads
         if (role === "agent") {
             const allowedAgentRoutes = [
                 "/dashboard",
                 "/dashboard/agent",
                 "/dashboard/leads",
                 "/dashboard/properties/new",
+                "/dashboard/agent/availability",
             ];
 
             const isAllowedAgentRoute =
@@ -91,9 +92,11 @@ export async function updateSession(request: NextRequest) {
 
         // Redirect base /dashboard to role-specific dashboard
         if (pathname === "/dashboard" || pathname === "/dashboard/") {
-            const url = request.nextUrl.clone();
-            url.pathname = role === "admin" ? "/dashboard/admin" : "/dashboard/leads";
-            return NextResponse.redirect(url);
+            if (role === "admin") {
+                const url = request.nextUrl.clone();
+                url.pathname = "/dashboard/admin";
+                return NextResponse.redirect(url);
+            }
         }
     }
 

@@ -1,7 +1,19 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Clock, CheckCircle2, Loader2 } from "lucide-react";
+import {
+    addDays,
+    addMonths,
+    endOfMonth,
+    endOfWeek,
+    format,
+    isSameDay,
+    isSameMonth,
+    startOfMonth,
+    startOfWeek,
+    subMonths,
+} from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +34,7 @@ export default function BookingForm({
 }: BookingFormProps) {
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+    const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
     const [nationality, setNationality] = useState("");
@@ -51,6 +64,7 @@ export default function BookingForm({
 
     const availableDates = Object.keys(slotsByDate);
     const slotsForSelectedDate = selectedDate ? slotsByDate[selectedDate] || [] : [];
+    const availableDateSet = useMemo(() => new Set(availableDates), [availableDates]);
 
     const selectedSlot = slots.find((s) => s.id === selectedSlotId);
 
@@ -70,6 +84,27 @@ export default function BookingForm({
         const h12 = h % 12 || 12;
         return `${h12}:${minutes} ${ampm}`;
     };
+
+    useEffect(() => {
+        if (selectedDate && !availableDateSet.has(selectedDate)) {
+            setSelectedDate(null);
+            setSelectedSlotId(null);
+        }
+    }, [availableDateSet, selectedDate]);
+
+    const calendarDays = useMemo(() => {
+        const monthStart = startOfMonth(currentMonth);
+        const monthEnd = endOfMonth(currentMonth);
+        const startDate = startOfWeek(monthStart, { weekStartsOn: 0 });
+        const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 });
+        const days: Date[] = [];
+        let day = startDate;
+        while (day <= endDate) {
+            days.push(day);
+            day = addDays(day, 1);
+        }
+        return days;
+    }, [currentMonth]);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -114,18 +149,6 @@ export default function BookingForm({
         );
     }
 
-    if (availableDates.length === 0) {
-        return (
-            <div className="rounded-2xl border p-6 text-center">
-                <CalendarDays className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                <h3 className="font-semibold mb-1">No Visit Slots Available</h3>
-                <p className="text-sm text-muted-foreground">
-                    Check back later for available visit times.
-                </p>
-            </div>
-        );
-    }
-
     return (
         <div className="rounded-2xl border p-6 space-y-6">
             <div>
@@ -134,32 +157,81 @@ export default function BookingForm({
                     Schedule a Visit
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                    Select a date and time to visit this property
+                    Select a date and time to request a visit
                 </p>
             </div>
 
             {/* Date Selection */}
-            <div className="space-y-2">
-                <Label className="text-sm font-medium">Select Date</Label>
-                <div className="flex flex-wrap gap-2">
-                    {availableDates.map((date) => (
+            <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Select Date</Label>
+                    <div className="flex items-center gap-2">
                         <button
-                            key={date}
                             type="button"
-                            onClick={() => {
-                                setSelectedDate(date);
-                                setSelectedSlotId(null);
-                            }}
-                            className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
-                                selectedDate === date
-                                    ? "bg-primary text-primary-foreground border-primary"
-                                    : "hover:bg-secondary/80 border-border"
-                            }`}
+                            onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
+                            className="px-2 py-1 rounded-md border text-xs hover:bg-secondary"
                         >
-                            {formatDate(date)}
+                            Prev
                         </button>
+                        <span className="text-sm font-medium">
+                            {format(currentMonth, "MMMM yyyy")}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
+                            className="px-2 py-1 rounded-md border text-xs hover:bg-secondary"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-7 gap-2 text-xs text-muted-foreground">
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                        <div key={day} className="text-center">
+                            {day}
+                        </div>
                     ))}
                 </div>
+
+                <div className="grid grid-cols-7 gap-2">
+                    {calendarDays.map((day) => {
+                        const dateStr = format(day, "yyyy-MM-dd");
+                        const isAvailable = availableDateSet.has(dateStr);
+                        const isSelected = selectedDate === dateStr;
+                        const isToday = isSameDay(day, new Date());
+
+                        return (
+                            <button
+                                key={dateStr}
+                                type="button"
+                                onClick={() => {
+                                    if (!isAvailable) return;
+                                    setSelectedDate(dateStr);
+                                    setSelectedSlotId(null);
+                                }}
+                                className={`h-10 rounded-lg border text-sm transition-colors ${
+                                    !isSameMonth(day, currentMonth)
+                                        ? "text-muted-foreground/40 border-border"
+                                        : isSelected
+                                        ? "bg-primary text-primary-foreground border-primary"
+                                        : isAvailable
+                                        ? "hover:bg-secondary/80 border-border"
+                                        : "text-muted-foreground border-border"
+                                } ${isToday ? "ring-1 ring-primary/40" : ""}`}
+                                disabled={!isAvailable}
+                            >
+                                {format(day, "d")}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {availableDates.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                        No visit slots are available yet. Please check back later.
+                    </p>
+                )}
             </div>
 
             {/* Time Slot Selection */}

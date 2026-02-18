@@ -2,22 +2,16 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
     Building2,
-    LayoutDashboard,
-    Plus,
     LogOut,
     User,
-    Users,
-    ShoppingBag,
-    ClipboardList,
-    CalendarDays,
     Shield,
-    FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/lib/types";
 import DashboardNav from "./dashboard-nav";
+import type { NavItem } from "./dashboard-nav";
 
 export default async function DashboardLayout({
     children,
@@ -47,23 +41,23 @@ export default async function DashboardLayout({
 
     const isAdmin = role === "admin";
 
-    const agentNavItems = [
-        { href: "/dashboard", icon: LayoutDashboard, label: "Properties", shortLabel: "Props" },
-        { href: "/dashboard/properties/new", icon: Plus, label: "New Property", shortLabel: "New" },
-        { href: "/dashboard/agent/availability", icon: CalendarDays, label: "Availability", shortLabel: "Slots" },
-        { href: "/dashboard/agent/marketplace", icon: ShoppingBag, label: "Marketplace", shortLabel: "Market" },
-        { href: "/dashboard/leads", icon: Users, label: "Leads", shortLabel: "Leads" },
+    const agentNavItems: NavItem[] = [
+        { href: "/dashboard", icon: "LayoutDashboard", label: "Properties", shortLabel: "Props" },
+        { href: "/dashboard/properties/new", icon: "Plus", label: "New Property", shortLabel: "New" },
+        { href: "/dashboard/agent/availability", icon: "CalendarDays", label: "Availability", shortLabel: "Slots" },
+        { href: "/dashboard/agent/marketplace", icon: "ShoppingBag", label: "Marketplace", shortLabel: "Market" },
+        { href: "/dashboard/leads", icon: "Users", label: "Leads", shortLabel: "Leads" },
     ];
 
-    const adminNavItems = [
-        { href: "/dashboard/admin", icon: LayoutDashboard, label: "Overview", shortLabel: "Home" },
-        { href: "/dashboard/admin/leads", icon: Users, label: "Leads", shortLabel: "Leads" },
-        { href: "/dashboard/admin/properties", icon: Building2, label: "Properties", shortLabel: "Props" },
-        { href: "/dashboard/properties/new", icon: Plus, label: "Add Property", shortLabel: "Add" },
-        { href: "/dashboard/marketplace", icon: ShoppingBag, label: "Marketplace", shortLabel: "Market" },
-        { href: "/dashboard/admin/bookings", icon: ClipboardList, label: "Bookings", shortLabel: "Books" },
-        { href: "/dashboard/admin/agents", icon: Users, label: "Agents", shortLabel: "Agents" },
-        { href: "/dashboard/admin/audit-logs", icon: FileText, label: "Audit Logs", shortLabel: "Logs" },
+    const adminNavItems: NavItem[] = [
+        { href: "/dashboard/admin", icon: "LayoutDashboard", label: "Overview", shortLabel: "Home" },
+        { href: "/dashboard/admin/leads", icon: "Users", label: "Leads", shortLabel: "Leads" },
+        { href: "/dashboard/admin/properties", icon: "Building2", label: "Properties", shortLabel: "Props" },
+        { href: "/dashboard/properties/new", icon: "Plus", label: "Add Property", shortLabel: "Add" },
+        { href: "/dashboard/marketplace", icon: "ShoppingBag", label: "Marketplace", shortLabel: "Market" },
+        { href: "/dashboard/admin/bookings", icon: "ClipboardList", label: "Bookings", shortLabel: "Books" },
+        { href: "/dashboard/admin/agents", icon: "Users", label: "Agents", shortLabel: "Agents" },
+        { href: "/dashboard/admin/audit-logs", icon: "FileText", label: "Audit Logs", shortLabel: "Logs" },
     ];
 
     const navItems = isAdmin ? adminNavItems : agentNavItems;

@@ -4,14 +4,14 @@ import { ShoppingBag, Plus, Edit, Trash2, Tag, DollarSign, CheckCircle } from "l
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { formatCurrency } from "@/lib/utils";
 import type { HouseholdItem } from "@/lib/types";
 import { requireAdmin } from "@/lib/auth/guards";
 
 export default async function MarketplaceDashboardPage() {
     await requireAdmin();
-    const supabase = createClient();
+    const supabase = createAdminClient();
 
     let items: HouseholdItem[] = [];
 
@@ -139,7 +139,8 @@ export default async function MarketplaceDashboardPage() {
                                                         </Button>
                                                         <form action={async () => {
                                                             "use server";
-                                                            const supabase = createClient();
+                                                            const { createAdminClient: getAdmin } = await import("@/lib/supabase/admin");
+                                                            const supabase = getAdmin();
                                                             await supabase.from("household_items").delete().eq("id", item.id);
                                                         }}>
                                                             <Button size="sm" variant="ghost" type="submit">

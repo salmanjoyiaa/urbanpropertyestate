@@ -5,7 +5,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import HouseholdItemCard from "@/components/household-item-card";
 import SkeletonCard from "@/components/skeleton-card";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { HouseholdItem } from "@/lib/types";
 import { Search, SlidersHorizontal, ShoppingBag, ArrowLeft } from "lucide-react";
 
@@ -53,7 +53,7 @@ async function ItemGrid({ searchParams }: Props) {
     let totalCount = 0;
 
     try {
-        const supabase = createClient();
+        const supabase = createAdminClient();
         let query = supabase
             .from("household_items")
             .select("*, seller:profiles(*), household_item_photos(*)", { count: "exact" })

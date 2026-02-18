@@ -105,6 +105,7 @@ export default function HouseholdItemForm({ item, photos: initialPhotos = [] }: 
 
             const itemData = {
                 seller_id: user.id,
+                agent_id: user.id,
                 title: title.trim(),
                 category,
                 price: parsedPrice,

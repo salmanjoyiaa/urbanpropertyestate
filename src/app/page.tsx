@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import PropertyCard from "@/components/property-card";
 import HouseholdItemCard from "@/components/household-item-card";
 import type { Property, HouseholdItem } from "@/lib/types";
@@ -38,7 +39,8 @@ export default async function HomePage() {
             return aHas - bHas;
         });
 
-        const { data: itemData } = await supabase
+        const adminClient = createAdminClient();
+        const { data: itemData } = await adminClient
             .from("household_items")
             .select("*, seller:profiles(*), household_item_photos(*)")
             .eq("status", "available")
